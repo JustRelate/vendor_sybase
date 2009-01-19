@@ -1,14 +1,11 @@
-/* ORIGINAL_SCCSID:  Sccsid @(#) csconfig.h 1.1 5/27/94  */
-/* Sccsid @(#) csconfig.h 1.2 6/21/94 */
 /*
-**	Sybase Open Client/Server Version 10.0
+**	Sybase Open Client/Server 
 **	Confidential Property of Sybase, Inc.
-**	Copyright  Sybase, Inc. 1992, 1993
+**	Copyright  Sybase, Inc. 1992 - 2005
 **	All rights reserved
 */
 
 #ifndef __CSCONFIG_H__
-
 #define __CSCONFIG_H__
 
 /*
@@ -54,7 +51,7 @@
 #define SYB_MSC_VER 0
 #endif /* _MSC_VER */
 #if defined(__STDC__)
-#define SYB__STDC__ __STDC__
+#define SYB__STDC__ 1
 #else /* __STDC__ */
 #define SYB__STDC__ 0
 #endif /* __STDC__ */
@@ -73,29 +70,6 @@ typedef void            CS_VARARGS;
 typedef void            CS_STATIC;
 
 #else /* defined(_CPROTO_) */
-
-/*
-** The user needs to define "WIN3" in order to insure that the calling
-** convention supported by Window 3.1 is used instead of the Windows NT
-** convention.
-*/
-#if defined(WIN3)
-
-/*
-** Defines for Windows 3.1 calling convention
-*/
-#if defined(NO_EXPORT)
-#define CS_PUBLIC       _loadds _far _pascal
-#define CS_VARARGS      _loadds _far _cdecl
-#else
-#define CS_PUBLIC       __export _far _pascal
-#define CS_VARARGS      __export _far _cdecl
-#endif
-
-#define CS_INTERNAL     _far _pascal
-#define CS_STATIC       static
-
-#else /* WIN3 */
 
 #if ((SYB_MSC_VER >= 800)  || defined(__BORLANDC__))
 
@@ -119,8 +93,6 @@ typedef void            CS_STATIC;
 
 #endif /* ((SYB_MSC_VER >= 800) || defined(__BORLANDC__)) */
 
-#endif /* WIN3 */
-
 #endif /* defined(_CPROTO_) */
 
 /*
@@ -137,43 +109,10 @@ typedef void            CS_STATIC;
 #endif /* defined(__cplusplus) */
 
 /*
-** PROTOTYPE macro which either produces the prototype or creates any
-** empty argument list.
-**
-** Usage:
-**      storage_class type scope name PROTOTYPE((param_decl));
-**
-** Example:
-**      extern CS_RETCODE CS_PUBLIC cs_foo PROTOTYPE((CS_INT arg1, ...));
-**
-** The predefined name __STDC__ is assumed to be defined as 1 for compilers
-** that support ANSI C. Any compilers that don't do this, but need prototypes,
-** should define "CS_FORCE_PROTOTYPES".
+** PROTOTYPE macro which produces the prototype
 */
-
 #ifndef PROTOTYPE
-
-/*
-** Currently, Microsoft defines __STDC__ to 0, but we want to use
-** prototypes.
-*/
-#if (SYB_MSC_VER >= 800) || defined(__BORLANDC__) || defined(__OS2__) 
-#define CS_FORCE_PROTOTYPES	1
-#endif /* defined(SYB_MSC_VER) || defined(__BORLANDC__)  || defined(__OS2__) */
-
-/* Mac compilers need prototypes */
-#if defined(applec) || defined(__MWERKS__) || defined(THINK_C)
-#ifndef CS_FORCE_PROTOTYPES
-#define CS_FORCE_PROTOTYPES	1
-#endif 
-#endif /* defined(applec) || defined(__MWERKS__) || defined(THINK_C) */
-
-#if (SYB__STDC__) || defined(__cplusplus) || defined(CS_FORCE_PROTOTYPES)
 # define PROTOTYPE(s) s
-#else
-# define PROTOTYPE(s) ()
-#endif
-
 #endif /* PROTOTYPE */
 
 /*
@@ -202,7 +141,7 @@ typedef void            CS_STATIC;
 ** following insures that all platforms (including 64 bit machines) use
 ** the correct C native types.
 */
-#if defined(__alpha) 
+#if defined( __alpha) || defined(SYB_LP64) || defined(SYB_LLP64) || defined(_AIX)
 typedef	int		CS_INT;
 typedef int		CS_RETCODE;
 typedef	int		CS_BOOL;
@@ -214,32 +153,10 @@ typedef	long		CS_BOOL;
 typedef	unsigned long	CS_UINT;
 #endif
 
-/*
-** The vax C compiler cannot deal with typedef void. But, we want to
-** maintain a typedef for most platforms so things like prototype
-** generation work.
-*/
-#if defined(VMS) && defined(VAXC)
-
-#define CS_VOID		void
-#define CS_THRDRES	void 
-
-#else
-
 typedef void		CS_VOID;
 typedef void		CS_THRDRES;
 
-#endif /* defined(VMS) && defined(VAXC) */
-
-/*
-** Macintosh Think C compiler has special type for 8 byte floats.
-*/
-#if defined(THINK_C)
-typedef short double		CS_FLOAT;	/* 8 byte float type */
-#else
 typedef double		CS_FLOAT;	/* 8 byte float type */
-#endif /* defined(THINK_C) */
-
 
 /*
 ** Define the number of bits that a CS_BYTE can hold.
@@ -247,3 +164,4 @@ typedef double		CS_FLOAT;	/* 8 byte float type */
 #define CS_BITS_PER_BYTE	8
 
 #endif /* __CSCONFIG_H__ */
+

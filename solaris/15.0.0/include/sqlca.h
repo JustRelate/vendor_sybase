@@ -1,10 +1,7 @@
-
-/* Sccsid @(#) sqlca.h 8.1 8/10/93 */
-
 /*
-**	Sybase OC-LIBRARY Version 5.0
+**	Sybase OC-LIBRARY
 **	Confidential Property of Sybase, Inc.
-**	(c) Copyright Sybase, Inc. 1991, 1992
+**	(c) Copyright Sybase, Inc. 1991 - 2005
 **	All rights reserved
 */
 
@@ -41,4 +38,3 @@ typedef struct _sqlca
 } SQLCA;
 
 #endif /* __SQLCA_H__ */
-/* Sccsid %Z% %M% %I% %G% */

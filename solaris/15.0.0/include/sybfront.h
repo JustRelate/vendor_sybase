@@ -1,20 +1,15 @@
 
-/* ORIGINAL_SCCSID:  Sccsid @(#) sybfront.h 8.1 8/10/93  */
-/* Sccsid %Z% %M% %I% %G% */
-
-
 /*
-**	Sybase DB-LIBRARY Version 10.0.1
+**	Sybase DB-LIBRARY
 **	Confidential Property of Sybase, Inc.
-**	(c) Copyright Sybase, Inc. 1988, 1994
+**	(c) Copyright Sybase, Inc. 1988 - 2005
 **	All rights reserved
 **
 **
 ** Use, duplication, or disclosure by the Government
 ** is subject to restrictions as set forth in subparagraph (c) (1) (ii)
 ** of the Rights in Technical Data and Computer Software clause
-** at DFARS 52.227-7013. Sybase, Inc. 6475 Christie Avenue, Emeryville,
-** CA 94608.
+** at DFARS 52.227-7013. Sybase, Inc. One Sybase Drive, Dublin, CA 94568
 **
 ** History
 **
@@ -25,19 +20,11 @@
 #ifndef	__sybfront__
 #define	__sybfront__
 
+#ifndef __NO_INCLUDE__
 #include <cstypes.h>		/* DB-Library data types will be based on
-				** the types in the 5.0 common header file.
+				** the types in the CS-Library common header file.
 				*/
-
-#if defined(NETWARE386)
-/* 
-** For netware we must include this file which defines all the types
-** including some that we redefine. This way, the user is not forced 
-** to include files in a certain order. This, ofcourse, forces the user
-** to define NETWARE386.
-*/
-#include <nwtypes.h>
-#endif
+#endif /* __NO_INCLUDE__ */
 
 #define	KR_C_COMPILE	1
 #define	ANSI_C_COMPILE	2
@@ -60,11 +47,7 @@
 /*
 ** Far pointer modifier
 */
-#if WIN3
-#define	DBFAR		_far
-#else
 #define	DBFAR
-#endif /* WIN3 */
 
 
 
@@ -116,20 +99,11 @@ typedef	void DBFAR	*DBVOIDPTR;
 */
 
 #ifndef STDEXIT
-#if !VMS
 #define	STDEXIT         0
-#else
-#define	STDEXIT         1
-#endif /* !VMS */
 #endif  /*  ifndef STDEXIT  */
 
 #ifndef ERREXIT
-#if !VMS
 #define	ERREXIT         -1
-#else
-#include <stsdef.h>
-#define	ERREXIT STS$K_SEVERE | STS$M_INHIB_MSG
-#endif /* !VMS */
 #endif  /*  ifndef ERREXIT  */
 
 /*
@@ -178,6 +152,11 @@ typedef	void DBFAR	*DBVOIDPTR;
 #ifndef DBBOOL
 typedef	unsigned char	DBBOOL;	
 #endif
+#if !defined(_MSC_VER) && !defined(__BORLANDC__)
+#if !defined(BOOL)
+typedef	unsigned char	BOOL;		/* So older programs won't break yet. */
+#endif /* BOOL */
+#endif /* _MSC_VER */
 typedef	BYTE DBFAR	*POINTER;
 #ifndef	DBUSMALLINT
 typedef	unsigned short  DBUSMALLINT;    /* SQL Server 2 byte integer */
@@ -185,27 +164,14 @@ typedef	unsigned short  DBUSMALLINT;    /* SQL Server 2 byte integer */
 
 /*
 **	Pointers to functions returning ...
-** Keep the #if under 80 characters 
 */
 				/*- 001 -*/
 #if ((COMPILE_STYLE == ANSI_C_COMPILE) || (COMPILE_STYLE == CPP_COMPILE)) 
 #define PROTO_FUNCPTR 1
 #endif
 
-#if defined(FORCE_PROTOTYPES) || defined(CS_FORCE_PROTOTYPES) 
-#ifndef PROTO_FUNCPTR
-#define PROTO_FUNCPTR 1
-#endif	/* !PROTO_FUNCPTR */
-#endif
-
-#if !defined(_MSC_VER) && !defined(__BORLANDC__) && !defined(WIN3)
+#if !defined(_MSC_VER) && !defined(__BORLANDC__)
 #define	NOT_PC_PROTO	1
-#endif
-
-#if defined(THINK_C)
-#ifdef NOT_PC_PROTO
-#undef NOT_PC_PROTO
-#endif
 #endif
 
 #if (defined(PROTO_FUNCPTR) && defined(NOT_PC_PROTO))

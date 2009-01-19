@@ -1,25 +1,23 @@
-
-/* Sccsid %Z% %M% %I% %G% */
-
 /*
-**
-**		Sybase CT-LIBRARY Version 5.0
-**		Confidential Property of Sybase, Inc.
-**		(c) Copyright Sybase, Inc. 1991
-**		All rights reserved
+**	Sybase CT-LIBRARY
+**	Confidential Property of Sybase, Inc.
+**	(c) Copyright Sybase, Inc. 1991 - 2005
+**	All rights reserved
 */
 
 /*
-** ctpublic.h - This is the header file for 5.0 CT-Lib.
+** ctpublic.h - This is the public header file for CT-Lib.
 */
 #ifndef __CTPUBLIC_H__
-
 #define __CTPUBLIC_H__
 
 /*
 ** include common defines and typedefs
 */
+#ifndef __NO_INCLUDE__
 #include <cspublic.h>
+#include <sqlda.h>
+#endif /* __NO_INCLUDE__ */
 
 /*****************************************************************************
 **
@@ -75,6 +73,12 @@
 #define CT_SETLOGINFO		(CS_INT) 42
 #define CT_WAKEUP		(CS_INT) 43
 #define CT_LABELS		(CS_INT) 44
+#define CT_DS_LOOKUP		(CS_INT) 45
+#define CT_DS_DROP		(CS_INT) 46
+#define CT_DS_OBJINFO		(CS_INT) 47
+#define CT_SETPARAM		(CS_INT) 48
+#define CT_DYNSQLDA		(CS_INT) 49
+#define CT_SCROLL_FETCH		(CS_INT) 50
 #define CT_NOTIFICATION		(CS_INT) 1000	/* id for event notfication
 						** completion
 						*/
@@ -261,6 +265,13 @@ extern CS_RETCODE CS_PUBLIC ct_dynamic PROTOTYPE((
 	CS_CHAR *buf,
 	CS_INT buflen
 	));
+/* ctdynsqd.c */
+extern CS_RETCODE CS_PUBLIC ct_dynsqlda PROTOTYPE((
+	CS_COMMAND	*cmd,
+	CS_INT		type,
+	SQLDA		*dap,
+	CS_INT		operation
+	));
 /* ctexit.c */
 extern CS_RETCODE CS_PUBLIC ct_exit PROTOTYPE((
 	CS_CONTEXT *context,
@@ -268,6 +279,14 @@ extern CS_RETCODE CS_PUBLIC ct_exit PROTOTYPE((
 	));
 /* ctfetch.c */
 extern CS_RETCODE CS_PUBLIC ct_fetch PROTOTYPE((
+	CS_COMMAND *cmd,
+	CS_INT type,
+	CS_INT offset,
+	CS_INT option,
+	CS_INT *count
+	));
+/* ctfetch.c */
+extern CS_RETCODE CS_PUBLIC ct_scroll_fetch PROTOTYPE((
 	CS_COMMAND *cmd,
 	CS_INT type,
 	CS_INT offset,
@@ -311,7 +330,7 @@ extern CS_RETCODE CS_PUBLIC ct_param PROTOTYPE((
 	CS_DATAFMT *datafmt,
 	CS_VOID *data,
 	CS_INT datalen,
-	int indicator
+	CS_SMALLINT indicator
 	));
 /* ctpass.c */
 extern CS_RETCODE CS_PUBLIC ct_getloginfo PROTOTYPE((
@@ -403,6 +422,37 @@ extern CS_RETCODE CS_PUBLIC ct_labels PROTOTYPE((
 	CS_CHAR         *labelvalue,
 	CS_INT          valuelen,
 	CS_INT 		*outlen
+	));
+/* ctdsbrse.c */
+extern CS_RETCODE CS_PUBLIC ct_ds_lookup PROTOTYPE((
+	CS_CONNECTION		*connection,
+	CS_INT			action,
+	CS_INT			*reqidp,
+	CS_DS_LOOKUP_INFO	*lookupinfo,
+	CS_VOID			*userdatap
+	));
+/* ctdsdrop.c */
+extern CS_RETCODE CS_PUBLIC ct_ds_dropobj PROTOTYPE((
+	CS_CONNECTION	*connection,
+	CS_DS_OBJECT	*object 
+	));
+/* ctdsobji.c */
+extern CS_RETCODE CS_PUBLIC ct_ds_objinfo PROTOTYPE((
+	CS_DS_OBJECT	*objclass,
+	CS_INT          action,
+	CS_INT          objinfo,
+	CS_INT          number,
+	CS_VOID         *buffer,
+	CS_INT          buflen,
+	CS_INT          *outlen
+	));
+/* ctsetpar.c */
+extern CS_RETCODE CS_PUBLIC ct_setparam PROTOTYPE((
+	CS_COMMAND *cmd,
+	CS_DATAFMT *datafmt,
+	CS_VOID *data,
+	CS_INT *datalenp,
+	CS_SMALLINT *indp
 	));
 
 CS_END_EXTERN_C

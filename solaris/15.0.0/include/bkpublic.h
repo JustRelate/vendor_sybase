@@ -1,12 +1,7 @@
-
-
-
-/* Sccsid %Z% %M% %I% %G% */
-
 /*
-**      Sybase OpenClient Version 5.0
+**      Sybase OpenClient
 **      Confidential Property of Sybase, Inc.
-**      (c) Copyright Sybase, Inc. 1991, 1992
+**      (c) Copyright Sybase, Inc. 1991 - 2005
 **      All rights reserved
 */
 
@@ -18,7 +13,9 @@
 #define __BKPUBLIC_H__
 
 
+#ifndef __NO_INCLUDE__
 #include        <ctpublic.h>
+#endif /* __NO_INCLUDE__ */
 
 /*****************************************************************************
 **
@@ -76,13 +73,58 @@
 
 #ifndef		BLK_VERSION_100
 #define		BLK_VERSION_100	CS_VERSION_100
+#define		BLK_VERSION_100_NO_LRGID CS_VERSION_100_NO_LRGID
 #endif		/* BLK_VERSION_100 */
+
+/* 
+** define BLK_VERSION_110 as BLK_VERSION_100
+*/
+#ifndef		BLK_VERSION_110
+#define		BLK_VERSION_110	BLK_VERSION_100
+#define		BLK_VERSION_110_NO_LRGID BLK_VERSION_100_NO_LRGID
+#endif		/* BLK_VERSION_110 */
+
+/* 
+** define BLK_VERSION_120 as BLK_VERSION_100
+*/
+#ifndef		BLK_VERSION_120
+#define		BLK_VERSION_120	BLK_VERSION_100
+#define		BLK_VERSION_12_NO_LRGID0 BLK_VERSION_100_NO_LRGID
+#endif		/* BLK_VERSION_120 */
+
+/* 
+** define BLK_VERSION_125 as CS_VERSION_125
+*/
+#ifndef		BLK_VERSION_125
+#define		BLK_VERSION_125	CS_VERSION_125
+#define		BLK_VERSION_125_NO_LRGID CS_VERSION_125_NO_LRGID
+#endif		/* BLK_VERSION_125 */
+
+/* 
+** define BLK_VERSION_150 as CS_VERSION_150
+*/
+#ifndef		BLK_VERSION_150
+#define		BLK_VERSION_150 CS_VERSION_150
+#define		BLK_VERSION_150_NO_LRGID CS_VERSION_150_NO_LRGID
+#endif		/* BLK_VERSION_150 */
 
 /*
 ** For the bulk copy options - used with blk_props()
 */
 #define BLK_IDENTITY    	(CS_INT) (1)
 #define BLK_SENSITIVITY_LBL     (CS_INT) (2)
+#define BLK_NOAPI_CHK    	(CS_INT) (3)
+#define BLK_SLICENUM    	(CS_INT) (4)
+#define BLK_IDSTARTNUM    	(CS_INT) (5)
+#define ARRAY_INSERT            (CS_INT) (6)
+#define BLK_CONV		(CS_INT) (7)
+#define BLK_PARTITION		(CS_INT) (8)
+
+/*
+** Special value for datafmt.status in blklib with array binding
+*/
+#define CS_BLK_ARRAY_MAXLEN		(CS_INT)0x1000
+
 /*****************************************************************************
 **
 ** define all user accessable functions here
@@ -180,6 +222,11 @@ extern CS_RETCODE CS_PUBLIC blk_rowxfer PROTOTYPE((
 	CS_BLKDESC *blkdesc
 	));
 
+extern CS_RETCODE CS_PUBLIC blk_rowxfer_mult PROTOTYPE((
+	CS_BLKDESC *blkdesc,
+	CS_INT *rowcount
+	));
+
 extern CS_RETCODE CS_PUBLIC blk_sendrow PROTOTYPE((
 	CS_BLKDESC *blkdesc,
 	CS_BLK_ROW *row
@@ -212,6 +259,11 @@ extern CS_RETCODE CS_PUBLIC blk_props PROTOTYPE((
 	CS_INT buflen,
 	CS_INT *outlen
 	));
+
+extern CS_RETCODE CS_PUBLIC blk_bcp_indicator PROTOTYPE((
+        CS_BLKDESC *blkdesc,
+        CS_BOOL action
+        ));
 
 CS_END_EXTERN_C
 

@@ -1,19 +1,14 @@
-/* ORIGINAL_SCCSID:  Sccsid @(#) syblogin.h 8.1 8/10/93  */
-/* Sccsid %Z% %M% %I% %G% */
-
-
 /*
-**	Sybase DB-LIBRARY Version 5.0
+**	Sybase DB-LIBRARY
 **	Confidential Property of Sybase, Inc.
-**	(c) Copyright Sybase, Inc. 1988, 1992
+**	(c) Copyright Sybase, Inc. 1988 - 2005
 **	All rights reserved
 **
 **
 ** Use, duplication, or disclosure by the Government
 ** is subject to restrictions as set forth in subparagraph (c) (1) (ii)
 ** of the Rights in Technical Data and Computer Software clause
-** at DFARS 52.227-7013. Sybase, Inc. 6475 Christie Avenue, Emeryville,
-** CA 94608.
+** at DFARS 52.227-7013. Sybase, Inc. One Sybase Drive, Dublin, CA 94568
 **
 ** History
 **
@@ -48,7 +43,7 @@ typedef struct Securepair
         char		*labelvalue;
 } SECLABELS;
 
-/* 001
+/*
 ** Function Prototype for ANSI compilation
 */
 #if ((COMPILE_STYLE == ANSI_C_COMPILE) || (COMPILE_STYLE == CPP_COMPILE) || defined(FORCE_PROTOTYPES))

@@ -1,20 +1,15 @@
-/* ORIGINAL_SCCSID:  ORIGINAL_SCCSID:   @(#) sybdb.h 87.8 02 Jan 1994 */ 
-
-
-/* @(#) sybdb.h 1.6 8/12/94 */
-
 /*
-**      Sybase DB-LIBRARY Version 10.0.1
+**      Sybase DB-LIBRARY 
 **      Confidential Property of Sybase, Inc.
-**      (c) Copyright Sybase, Inc. 1988 to 1994.
+**      (c) Copyright Sybase, Inc. 1988 - 2006
 **      All rights reserved.
 **
 **
 ** Use, duplication, or disclosure by the Government
 ** is subject to restrictions as set forth in subparagraph (c) (1) (ii)
 ** of the Rights in Technical Data and Computer Software clause
-** at DFARS 52.227-7013. Sybase, Inc. 6475 Christie Avenue, Emeryville,
-** CA 94608.
+** at DFARS 52.227-7013. Sybase, Inc. One Sybase Drive, Dublin, CA 94568,
+** USA.
 **
 ** History
 **
@@ -23,6 +18,7 @@
 ** 002	08Jul94	Fixed all the prototypes to make it consistant with
 **		all other public headers				nagar
 ** 003  11AUG94	 Added db_filmode field in DBPROCESS			cchen
+** 004  30MAY96	 Added DCL interfaces support to dblib			cchen
 */
 
 #ifndef __sybdb__
@@ -54,7 +50,9 @@
 #define SYB_MAC 1
 #endif  /* defined(applec) || defined(powerc) || defined(__MWERKS__) || defined(THINK_C) */
 
+#ifndef __NO_INCLUDE__
 #include        <syblogin.h>
+#endif /* __NO_INCLUDE__ */
 
 /*
 ** The following datatype definitions are included here to avoid including
@@ -1018,12 +1016,20 @@
 #define	SYBEBBFL	20297	/* -001-
 				** Batch failed in bulk-copy to SQL Server
 				*/
+#define	SYBEDCL		20298	/* -004-
+				** DCL Error
+				*/
+#define	SYBECS		20299	/* -004-
+				** cs context Error
+				*/
+#define SYBEVERENV	20300	/* Environment variable has invalid value
+				** when trying to config version level
+				*/
 
 /* WARNING: whenever a new DB-Library error message is added,
  * increment DBERRCOUNT.
  */
-#define DBERRCOUNT	297
-
+#define DBERRCOUNT	300
 
 
 /*
@@ -1032,7 +1038,6 @@
 #define ATTN_TIMEOUT    30
 
 
- 
 /*
 ** Define the symbol which denotes a null-terminated string length.
 */
@@ -1176,42 +1181,47 @@ struct	dbprlist;
 */
 typedef struct servbuf
 {
-        BYTE    *serv_sbuf;     /* send: start of send buffer */
-        BYTE    *serv_snb;      /* send: next place in buffer */
-        int     serv_sleft;     /* send: room left in send buffer */
-        int     serv_sbsize;    /* send: buffer size */
-        int     serv_snum;      /* send # for network */
-        int     serv_sstat;     /* send: status bits */
-        BYTE    *serv_rbuf;     /* recv: start of recv buffer */
-        BYTE    *serv_rnb;      /* recv: next place in buffer */
-        int     serv_rleft;     /* recv: room left in recv buffer */
-        int     serv_rbsize;    /* recv: buffer size */
-        int     serv_rnum;      /* recv # for network */
-        int     serv_rstat;     /* recv: status bits */
-        int     serv_commtype;  /* communications type (tcp, etc.) */
+        BYTE    *serv_sbuf;		/* send: start of send buffer */
+        BYTE    *serv_snb;		/* send: next place in buffer */
+        int     serv_sleft;		/* send: room left in send buffer */
+        int     serv_sbsize;		/* send: buffer size */
+        int     serv_snum;		/* send # for network */
+        int     serv_sstat;		/* send: status bits */
+        BYTE    *serv_rbuf;		/* recv: start of recv buffer */
+        BYTE    *serv_rnb;		/* recv: next place in buffer */
+        int     serv_rleft;		/* recv: room left in recv buffer */
+        int     serv_rbsize;		/* recv: buffer size */
+        int     serv_rnum;		/* recv # for network */
+        int     serv_rstat;		/* recv: status bits */
+        int     serv_commtype;		/* communications type (tcp, etc.) */
 
-	DB_ATTN_FUNC serv_attn;	 /* network-dependent routine to send
-                                 * an ATTN packet to the SQL Server.
-                                 */
+	DB_ATTN_FUNC serv_attn;		/* network-dependent routine to send
+					** an ATTN packet to the SQL Server.
+					*/
 
-	DB_READ_FUNC serv_read;	 /* network-dependent routine to read
-                                 * a byte stream from the SQL Server.
-                                 */
+	DB_READ_FUNC serv_read;		/* network-dependent routine to read
+					** a byte stream from the SQL Server.
+					*/
 
-	DB_READ_A_FUNC serv_read_a; /* async version of serv_read(). */
+	DB_READ_A_FUNC serv_read_a;	/* async version of serv_read(). */
 
-	DB_WRIT_FUNC serv_writ; /* network-dependent routine to write
-                                 * a byte stream to the SQL Server.
-                                 */
+	DB_WRIT_FUNC serv_writ;		/* network-dependent routine to write
+					** a byte stream to the SQL Server.
+					*/
 
-	DB_CLOS_FUNC serv_clos; /* network-dependent routine to close
-                                 * a connection to the SQL Server.
-                                 */
+	DB_CLOS_FUNC serv_clos;		/* network-dependent routine to close
+					** a connection to the SQL Server.
+					*/
 
-        BYTE    serv_rbuftype;  /* packet type of the last read buffer */
+        BYTE    serv_rbuftype;		/* packet type of the last read
+					** buffer
+					*/
 	void	*serv_endpoint;
 	void	*serv_ioreadevent;
 	void	*serv_iowriteevent;
+#if (NETLIB)
+	void	*serv_readbuffer;	/* NET_BUFFER for async read */
+#endif /* (NETLIB) */
 } SERVBUF;
 
 
@@ -1330,14 +1340,14 @@ typedef struct nullbind NULLBIND;
 */
 struct dbcolinfo
 {
-        char    colname[DBMAXCOLNAME+1];/* column name */
+        DBCHAR    colname[DBMAXCOLNAME+1];/* column name */
         BYTE    coltype;                /* column type */
         DBINT   coludtype;              /* user-defined type */
         DBINT   collen;                 /* max length of column */
         DBINT   colprlen;               /* max printing length of column */
-        char    *colcontrol;            /* control format, if any */
+        DBCHAR    *colcontrol;            /* control format, if any */
         struct bindrec  colbind;        /* binding info, if any */
-        int     coltable;               /* for browse mode: which table
+        DBINT     coltable;               /* for browse mode: which table
                                          * did this column come from?
                                          */
         BYTE            colstatus;      /* for browse mode: what kind of column
@@ -1357,6 +1367,7 @@ struct dbcolinfo
 	DBTYPEINFO	coltypeinfo;	/* precision/scale info for Numeric or
 					 * Decimal columns.
 					 */
+	DBBOOL		colhasnull;	/* Is column data null? */
         struct dbcolinfo        *colnext;       /* next column */
 };
 typedef struct dbcolinfo        DBCOLINFO;
@@ -1534,40 +1545,42 @@ typedef struct dbmsg        DBMSG;
 ** dataserver options and their index into the Dboptdict array
 ** Dboptdict is defined in options.c
 */
-#define DBPARSEONLY     0
-#define DBESTIMATE      1       
-#define DBSHOWPLAN      2
-#define DBNOEXEC        3
-#define DBARITHIGNORE   4
-#define DBNOCOUNT       5
-#define DBARITHABORT    6
-#define DBTEXTLIMIT     7
-#define DBBROWSE        8
-#define DBOFFSET        9
-#define DBSTAT          10
-#define DBERRLVL        11
-#define DBCONFIRM       12
-#define DBSTORPROCID    13
-#define DBBUFFER        14
-#define DBNOAUTOFREE    15
-#define DBROWCOUNT      16
-#define DBTEXTSIZE      17
-#define DBNATLANG       18
-#define DBDATEFORMAT    19
-#define DBPRPAD         20
-#define DBPRCOLSEP      21
-#define DBPRLINELEN     22
-#define DBPRLINESEP     23
-#define DBLFCONVERT     24
+#define DBPARSEONLY    	0
+#define DBESTIMATE     	1       
+#define DBSHOWPLAN     	2
+#define DBNOEXEC       	3
+#define DBARITHIGNORE  	4
+#define DBNOCOUNT      	5
+#define DBARITHABORT   	6
+#define DBTEXTLIMIT    	7
+#define DBBROWSE       	8
+#define DBOFFSET       	9
+#define DBSTAT         	10
+#define DBERRLVL       	11
+#define DBCONFIRM      	12
+#define DBSTORPROCID   	13
+#define DBBUFFER       	14
+#define DBNOAUTOFREE   	15
+#define DBROWCOUNT     	16
+#define DBTEXTSIZE     	17
+#define DBNATLANG      	18
+#define DBDATEFORMAT   	19
+#define DBPRPAD        	20
+#define DBPRCOLSEP     	21
+#define DBPRLINELEN    	22
+#define DBPRLINESEP    	23
+#define DBLFCONVERT    	24
 #define DBDATEFIRST	25
 #define DBCHAINXACTS	26
 #define DBFIPSFLAG	27
 #define DBISOLATION	28
 #define DBAUTH		29
 #define DBIDENTITY	30
-#define DBNOIDCOL       31
+#define DBNOIDCOL      	31
+#define DBDATESHORT	32
+#define DBIDENTITYUPD	33
 
-#define DBNUMOPTIONS    32      /* total number of Db-Lib options */
+#define DBNUMOPTIONS    34      /* total number of Db-Lib options */
 
 #define DBPADOFF        0
 #define DBPADON         1
@@ -1668,12 +1681,6 @@ typedef struct dbdone   DBDONE;
 #define PERIOD  '.'     /* the separator... */
 
 #define STATNULL        (BYTE) 0x08
-#ifndef IN
-#define IN              (BYTE) 1 /* TEMPORARY - for backward compatibility. */
-#endif /* IN */
-#ifndef OUT
-#define OUT             (BYTE) 2 /* TEMPORARY - for backward compatibility. */
-#endif /* OUT */
 #define DB_IN           (BYTE) 1
 #define DB_OUT          (BYTE) 2
 #define BCPNAMELEN      255
@@ -2131,7 +2138,7 @@ typedef struct dbloginfo
 	BYTE 	hostlen;		/* length of host name		*/
 	BYTE 	password[30];		/* password			*/
 	BYTE 	pwdlen;			/* length of password		*/
-	BYTE	username[30];		/* user name 			*/
+	BYTE	username[256];		/* user name 			*/
 	BYTE 	userlen;		/* length of user name.		*/
 	DBVOIDPTR	*locale;	/* Pointer to CS_LOCALE structure*/
 } DBLOGINFO;
@@ -2466,20 +2473,27 @@ struct dbprocess
                                          * in a big linked-list.
                                          */
 	DBCURSOR *	dbcursors;	/* cursors for this dbproc */
-
-#if OS2 || NT || NETWARE386 || SYB_MAC  || MSDOS || WIN3
+	void		*dbsssess;	/* Net Lib SCL security services session */
+#if OS2 || NT || NETWARE386 || SYB_MAC  || MSDOS || WIN3 || SUN || LINUX || MACOSX
 	DBINT		dbexpedited;	/* Buffer for exp data */
 	void		*db_compstatus;  /* Net Lib completion status */
 	DBBOOL		db_readpending; /* To indicate read is pending */
 	DBINT		db_readbytes;	/* To indicate the bytes read */
-#endif /* OS2 || NT || NETWARE386 || SYB_MAC || MSDOS || WIN3 */
+#endif /* OS2 || NT || NETWARE386 || SYB_MAC || MSDOS || WIN3 || SUN || LINUX || MACOSX */
 	DBBOOL          db_bcplabels;   /* TRUE if bcp will include security
 					 * labels.
 					 */
 #if defined(NETWARE386) || defined(OS2) || defined(NT) || defined(WIN3) || defined(MSDOS)
 					/* 003: This field for bcp support */
 	int		db_filmode;	/* DB_BINARY or DB_TEXT	*/
+	DBBOOL		cnv_date2char_short;
+					/* To indicate if a short date will
+					** result in converting date to a
+					** string.
+					*/
+
 #endif
+        BYTE             db_progversion[4];  /* prog version for dbproc. */
 };
 typedef struct dbprocess        DBPROCESS;
 
@@ -2563,7 +2577,8 @@ typedef struct dbprocess        DBPROCESS;
 
 
 /*
-** dbgetlusername() will return DBTRUNCATED if it truncated the user name.
+** dbgetlusername() and dbgetlpassword() will return DBTRUNCATED if it 
+** truncated the user name.
 */
 #define DBTRUNCATED     -1
 
@@ -2784,7 +2799,7 @@ RETCODE CS_PUBLIC dbsetllong  PROTOTYPE((
 int CS_PUBLIC db__getDbTimeout  PROTOTYPE((
 	DBPROCESS DBFAR *dbproc
 	));
-DBINT CS_PUBLIC dbcmdrow  PROTOTYPE((
+RETCODE CS_PUBLIC dbcmdrow  PROTOTYPE((
 	DBPROCESS DBFAR *x
 	));
 int CS_PUBLIC dbtds  PROTOTYPE((
@@ -2805,13 +2820,13 @@ DBINT CS_PUBLIC dblastrow  PROTOTYPE((
 DBINT CS_PUBLIC dbrowtype  PROTOTYPE((
 	DBPROCESS DBFAR *a
 	));
-DBINT CS_PUBLIC dbmorecmds  PROTOTYPE((
+RETCODE CS_PUBLIC dbmorecmds  PROTOTYPE((
 	DBPROCESS DBFAR *a
 	));
 DBINT CS_PUBLIC donecontinue  PROTOTYPE((
 	DBPROCESS DBFAR *a
 	));
-DBINT CS_PUBLIC dbrows  PROTOTYPE((
+RETCODE CS_PUBLIC dbrows  PROTOTYPE((
 	DBPROCESS DBFAR *x
 	));
 int CS_PUBLIC dbnumorders  PROTOTYPE((
@@ -2932,9 +2947,6 @@ DBINT CS_PUBLIC dbaltlen  PROTOTYPE((
 	DBPROCESS DBFAR *dbproc,
 	int computeid,
 	int colnumber
-	));
-DBINT CS_PUBLIC dbcmdrow  PROTOTYPE((
-	DBPROCESS DBFAR *x
 	));
 DBINT CS_PUBLIC dbcollen  PROTOTYPE((
 	DBPROCESS DBFAR *dbproc,
@@ -3558,11 +3570,11 @@ RETCODE CS_PUBLIC dbwritetext PROTOTYPE((
 	DBINT size,
 	BYTE DBFAR *text
 	));
-STATUS CS_PUBLIC dbgetrow  PROTOTYPE((
+RETCODE CS_PUBLIC dbgetrow  PROTOTYPE((
 	DBPROCESS DBFAR *dbproc,
 	DBINT row
 	));
-STATUS CS_PUBLIC dbnextrow  PROTOTYPE((
+RETCODE CS_PUBLIC dbnextrow  PROTOTYPE((
 	DBPROCESS DBFAR *dbproc
 	));
 #if VMS
@@ -3573,12 +3585,12 @@ STATUS CS_PUBLIC dbnextrow_a  PROTOTYPE((
 	BYTE DBFAR *ast_param
 	));
 #endif /* VMS */
-STATUS CS_PUBLIC dbreadtext  PROTOTYPE((
+RETCODE CS_PUBLIC dbreadtext  PROTOTYPE((
 	DBPROCESS DBFAR *dbproc,
 	void DBFAR *buf,
 	DBINT bufsize
 	));
-STATUS CS_PUBLIC dbsetrow  PROTOTYPE((
+RETCODE CS_PUBLIC dbsetrow  PROTOTYPE((
 	DBPROCESS DBFAR *dbproc,
 	DBINT row
 	));
@@ -3686,7 +3698,7 @@ int CS_PUBLIC dbcoltype  PROTOTYPE((
 	DBPROCESS DBFAR *dbproc,
 	int colnumber
 	));
-int CS_PUBLIC dbcolutype  PROTOTYPE((
+DBINT CS_PUBLIC dbcolutype  PROTOTYPE((
 	DBPROCESS DBFAR *dbproc,
 	int colnumber
 	));
@@ -3709,6 +3721,11 @@ int CS_PUBLIC dbdatename  PROTOTYPE((
 int CS_PUBLIC dbgetlusername  PROTOTYPE((
 	LOGINREC DBFAR *login,
 	BYTE DBFAR *name_buffer,
+	int buffer_len
+	));
+int CS_PUBLIC dbgetlpassword  PROTOTYPE((
+	LOGINREC DBFAR *login,
+	BYTE DBFAR *passwd_buffer,
 	int buffer_len
 	));
 int CS_PUBLIC dbgetmaxprocs  PROTOTYPE((

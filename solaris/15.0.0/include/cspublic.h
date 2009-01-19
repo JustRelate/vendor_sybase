@@ -1,23 +1,20 @@
-
-/* Sccsid %Z% %M% %I% %G% */
-
 /*
-**	Sybase Open Client/Server Version 10.0
+**	Sybase Open Client/Server 
 **	Confidential Property of Sybase, Inc.
-**	Copyright  Sybase, Inc. 1992, 1993
+**	Copyright  Sybase, Inc. 1992 - 2006
 **	All rights reserved
 */
-
 #ifndef __CSPUBLIC_H__
-
 #define __CSPUBLIC_H__
 
 /*
-** Include the core header files. These files contains the defines and
+** Include the core header files. These files contain the defines and
 ** data structures that are shared by all libraries.
 */
+#ifndef __NO_INCLUDE__
 #include	<cstypes.h>
 #include	<sqlca.h>
+#endif /* __NO_INCLUDE__ */
 
 /*****************************************************************************
 **
@@ -64,12 +61,29 @@
 *****************************************************************************/
 
 /*
-** Define all the library versions currently supported.
+** Define all the library versions currently supported. 
+** If compile flag 'CS_NO_LARGE_IDENTIFIERS' is set, we need to use
+** the old values for CS_VERSION_xxx for compatibility reasons.
 */
+#ifdef CS_NO_LARGE_IDENTIFIERS
 #define CS_VERSION_100		(CS_INT)112
+#define CS_VERSION_110		(CS_INT)1100
+#define CS_VERSION_120		CS_VERSION_110
+#define CS_VERSION_125		(CS_INT)12500
+#define CS_VERSION_150		(CS_INT)15000
+#else
+#define CS_VERSION_100          (CS_INT)113
+#define CS_VERSION_110          (CS_INT)1101
+#define CS_VERSION_120          CS_VERSION_110
+#define CS_VERSION_125          (CS_INT)12501
+#define CS_VERSION_150          (CS_INT)15001
+#endif /* CS_NO_LARGE_IDENTIFIERS */
+
+#define CS_CURRENT_VERSION	CS_VERSION_150
 
 /*
 ** Action flags used.
+** 	CS_CACHE currently only used by OMI apis
 */
 #define CS_GET			(CS_INT)33
 #define CS_SET			(CS_INT)34
@@ -78,7 +92,9 @@
 #define CS_STATUS		(CS_INT)37
 #define CS_MSGLIMIT		(CS_INT)38
 #define	CS_SEND			(CS_INT)39
-
+#define	CS_SUPPORTED		(CS_INT)40
+#define CS_CACHE                (CS_INT)41
+ 
 /*
 ** Bind indicator values. These are preferred when passing data into
 ** Client Library or Server Library, since they add the appropriate cast.
@@ -107,6 +123,7 @@
 #define CS_DBG_DIAG		(CS_INT)0x80
 #define CS_DBG_NETWORK		(CS_INT)0x100
 #define CS_DBG_API_LOGCALL	(CS_INT)0x200
+#define	CS_DBG_CTL_INFO		(CS_INT)0x400
 
 /*
 ** Cancel types.
@@ -114,10 +131,11 @@
 #define CS_CANCEL_CURRENT	(CS_INT)6000
 #define CS_CANCEL_ALL		(CS_INT)6001
 #define CS_CANCEL_ATTN		(CS_INT)6002
+#define CS_CANCEL_ABORT_NOTIF	(CS_INT)6003
 
 /*
-** Cursor fetch options. Currently these are not supported within Open
-** Client and Open Server.
+** Cursor fetch options. Currently these are supported within Open
+** Client, not yet in Open Server.
 */
 #define CS_FIRST		(CS_INT)3000
 #define CS_NEXT			(CS_INT)3001
@@ -160,6 +178,12 @@
 #define CS_NOTIF_CB		(CS_INT)4
 #define CS_ENCRYPT_CB		(CS_INT)5
 #define CS_CHALLENGE_CB		(CS_INT)6
+#define CS_DS_LOOKUP_CB		(CS_INT)7
+#define CS_SECSESSION_CB	(CS_INT)8
+#define	CS_SSLVALIDATE_CB	(CS_INT)9
+#define	CS_DONEPROC_CB		(CS_INT)10
+#define CS_EXTENDED_ENCRYPT_CB	(CS_INT)11
+
 /*
 ** To install a signal callback, the type needs to calculated as an
 ** offset of the operating-system-specific signal number and the
@@ -238,6 +262,7 @@
 #define CS_MSGTYPE		(CS_INT)806
 #define CS_BROWSE_INFO		(CS_INT)807
 #define CS_TRANS_STATE		(CS_INT)808
+#define CS_TOKEN_TYPE		(CS_INT)809
 
 /*
 ** Possible values for CS_TRANS_STATE.
@@ -306,8 +331,19 @@
 #define CS_EXECUTE		(CS_INT)718
 #define CS_EXEC_IMMEDIATE	(CS_INT)719
 #define CS_DESCRIBE_INPUT	(CS_INT)720
+#define CS_DESCRIBE_INPUTIN	(CS_INT)320 /* CS_DESCRIBE_INPUT & CS_INPUT */
 #define CS_DESCRIBE_OUTPUT	(CS_INT)721
 #define CS_DYN_CURSOR_DECLARE	(CS_INT)722
+
+
+/*
+** ct_dynsqlda() arguments and actions
+*/
+#define CS_SQLDA_SYBASE		(CS_INT)729
+#define CS_GET_IN		(CS_INT)730
+#define CS_GET_OUT		(CS_INT)731
+#define CS_SQLDA_BIND		(CS_INT)732
+#define CS_SQLDA_PARAM		(CS_INT)733
 
 /*
 ** Open Server-specific dynamic command types.
@@ -315,6 +351,14 @@
 #define CS_PROCNAME		(CS_INT)723
 #define CS_ACK			(CS_INT)724
 
+
+/*
+** ct_ds_objinfo() objinfo types.
+*/
+#define CS_OBJ_CLASSOID		(CS_INT)725
+#define CS_OBJ_DNAME		(CS_INT)726
+#define CS_OBJ_NUMATTR		(CS_INT)727
+#define CS_OBJ_ATRRIBUTE	(CS_INT)728
 
 /*
 ** Command options
@@ -329,9 +373,19 @@
 /*
 ** Cursor options.
 */
-#define CS_FOR_UPDATE		(CS_INT)0x1
-#define CS_READ_ONLY		(CS_INT)0x2
-#define CS_DYNAMIC		(CS_INT)0x4		/* Open Server only */
+#define CS_FOR_UPDATE		(CS_INT)0x0001
+#define CS_READ_ONLY		(CS_INT)0x0002
+#define CS_DYNAMIC		(CS_INT)0x0004	/* Open Server only */
+#define CS_RESTORE_OPEN		(CS_INT)0x0008	/* CT-Lib only */
+#define CS_MORE			(CS_INT)0x0010
+#define CS_END			(CS_INT)0x0020
+#define CS_IMPLICIT_CURSOR	(CS_INT)0x0040	/* Implicit, CT-Lib */
+#define CS_SCROLL_SENSITIVE	(CS_INT)0x0080	/* Scrollable cursor, reserved */
+#define CS_SCROLL_INSENSITIVE	(CS_INT)0x0100	/* Scrollable cursor, as default */
+#define CS_SCROLL_SEMISENSITIVE	(CS_INT)0x0200	/* Scrollable cursor */
+#define CS_SCROLL_KEYSETDRIVEN	(CS_INT)0x0400	/* Scrollable cursor, reserved */
+#define CS_SCROLL_CURSOR	(CS_INT)0x0800  /* "Default", internal */
+#define CS_NOSCROLL_INSENSITIVE	(CS_INT)0x1000	/* Non-scroll insensitive */
 
 /*
 ** Sybase-defined message ids for CS_MSG_CMDs.
@@ -412,10 +466,147 @@
 #define CS_VER_STRING		(CS_INT)9144
 #define CS_ASYNC_NOTIFS		(CS_INT)9145
 #define CS_SERVERNAME		(CS_INT)9146
+/* For CS_SERVERADDR (9206) see below */
 #define CS_THREAD_RESOURCE	(CS_INT)9147
 #define CS_NOAPI_CHK		(CS_INT)9148
 #define CS_SEC_APPDEFINED	(CS_INT)9149
+#define CS_NOCHARSETCNV_REQD	(CS_INT)9150
+#define CS_STICKY_BINDS		(CS_INT)9151
+#define CS_HAVE_CMD		(CS_INT)9152
+#define CS_HAVE_BINDS		(CS_INT)9153
+#define CS_HAVE_CUROPEN		(CS_INT)9154
+#define CS_EXTERNAL_CONFIG	(CS_INT)9155
+#define CS_CONFIG_FILE		(CS_INT)9156
+#define CS_CONFIG_BY_SERVERNAME	(CS_INT)9157
+ 
+/*
+** Directory Service connection properties
+*/
+#define CS_DS_CHAIN		(CS_INT)9158
+#define CS_DS_EXPANDALIAS	(CS_INT)9159
+#define CS_DS_COPY		(CS_INT)9160
+#define CS_DS_LOCALSCOPE	(CS_INT)9161
+#define CS_DS_PREFERCHAIN	(CS_INT)9162
+#define CS_DS_SCOPE		(CS_INT)9163
+#define CS_DS_SIZELIMIT		(CS_INT)9164
+#define CS_DS_TIMELIMIT		(CS_INT)9165
+#define CS_DS_PRINCIPAL		(CS_INT)9166
+/* For CS_DS_PASSWORD (9198) see below */
+#define CS_DS_REFERRAL		(CS_INT)9167
+#define CS_DS_SEARCH		(CS_INT)9168
+#define CS_DS_DITBASE		(CS_INT)9169
+#define CS_DS_FAILOVER		(CS_INT)9170
+#define CS_NET_TRANADDR		(CS_INT)9171
+#define CS_DS_PROVIDER 		(CS_INT)9172
+#define CS_RETRY_COUNT		(CS_INT)9173
+#define CS_LOOP_DELAY 		(CS_INT)9174
 
+/*
+** Properties for Security services support 
+*/
+#define CS_SEC_NETWORKAUTH	(CS_INT)9175
+#define CS_SEC_DELEGATION	(CS_INT)9176
+#define CS_SEC_MUTUALAUTH	(CS_INT)9177
+#define CS_SEC_INTEGRITY	(CS_INT)9178
+#define CS_SEC_CONFIDENTIALITY	(CS_INT)9179
+#define CS_SEC_CREDTIMEOUT	(CS_INT)9180
+#define CS_SEC_SESSTIMEOUT	(CS_INT)9181
+#define CS_SEC_DETECTREPLAY	(CS_INT)9182
+#define CS_SEC_DETECTSEQ	(CS_INT)9183 
+#define CS_SEC_DATAORIGIN	(CS_INT)9184
+#define CS_SEC_MECHANISM	(CS_INT)9185
+#define CS_SEC_CREDENTIALS	(CS_INT)9186
+#define CS_SEC_CHANBIND		(CS_INT)9187
+#define	CS_SEC_SERVERPRINCIPAL	(CS_INT)9188
+#define CS_SEC_KEYTAB		(CS_INT)9189
+
+/*
+** More properties
+*/
+#define CS_ABORTCHK_INTERVAL	(CS_INT)9190
+#define CS_LOGIN_TYPE		(CS_INT)9191
+#define CS_CON_KEEPALIVE	(CS_INT)9192
+#define CS_CON_TCP_NODELAY	(CS_INT)9193
+#define CS_LOGIN_REMOTE_SERVER	(CS_INT)9194
+#define CS_LOGIN_REMOTE_PASSWD	(CS_INT)9195
+
+/*
+** Property for reverting to behavior of earlier versions
+*/
+#define CS_BEHAVIOR		(CS_INT)9197
+
+/*
+** Property for HA failover 
+*/
+#define CS_HAFAILOVER        	(CS_INT)9196
+
+/*
+** Property for Directory services. (belongs with CS_DS_* above) 
+** Added at LDAP implementation time.
+*/
+#define CS_DS_PASSWORD		(CS_INT)9198
+
+/*
+** Property for blklib user data.
+*/
+#define CS_BLKDATA		(CS_INT)9199
+
+/*
+** Properties for SSL
+*/
+#define CS_PROP_SSL_PROTOVERSION	(CS_INT)9200
+#define CS_PROP_SSL_CIPHER		(CS_INT)9201
+#define CS_PROP_SSL_LOCALID		(CS_INT)9202
+#define CS_PROP_SSL_CA			(CS_INT)9203
+#define	CS_PROP_TLS_KEYREGEN		(CS_INT)9205
+
+/*
+** Property for connecting to ASE using host and port.
+*/
+#define CS_SERVERADDR		(CS_INT)9206
+
+/*
+** Properties related to use of login redirection and
+** Cluster HA extensions.
+*/
+#define CS_PROP_REDIRECT		(CS_INT)9207
+#define CS_PROP_EXTENDEDFAILOVER	(CS_INT)9208
+#define CS_DS_RAND_OFFSET		(CS_INT)9209
+
+/*
+** Property used to retrieve the ASE database SPID
+** that is returned at login time. Note that this value
+** may change should migration occur!
+*/
+#define	CS_PROP_APPLICATION_SPID	(CS_INT)9210
+
+/* 
+** For ct_cmd_props(), scrollable cursor.
+** CS_CUR_ROWPOSITION is reserved for future use.
+*/
+#define CS_CUR_TOTALROWS	(CS_INT)9211
+#define CS_CUR_ROWPOSITION	(CS_INT)9212
+
+/*
+** For extended password encryption
+*/
+#define CS_SEC_EXTENDED_ENCRYPTION	(CS_INT)9213
+#define CS_SEC_NON_ENCRYPTION_RETRY	(CS_INT)9214
+ 
+/*
+** CS_DS_SCOPE Values
+*/
+#define CS_SCOPE_COUNTRY	(CS_INT)1
+#define CS_SCOPE_DMD		(CS_INT)2
+#define CS_SCOPE_WORLD		(CS_INT)3
+
+/*
+** CS_DS_SEARCH Values
+*/
+#define CS_SEARCH_OBJECT	(CS_INT)1
+#define CS_SEARCH_ONE_LEVEL	(CS_INT)2
+#define CS_SEARCH_SUBTREE	(CS_INT)3
+ 
 /*
 ** Possible values for the CS_NETIO property.
 */
@@ -433,14 +624,32 @@
 /*
 ** Possible bit values for the CS_CUR_STATUS property.
 */
-#define CS_CURSTAT_NONE		(CS_INT)0x0
-#define CS_CURSTAT_DECLARED	(CS_INT)0x1
-#define CS_CURSTAT_OPEN		(CS_INT)0x2
-#define CS_CURSTAT_CLOSED	(CS_INT)0x4
-#define CS_CURSTAT_RDONLY	(CS_INT)0x8
-#define CS_CURSTAT_UPDATABLE	(CS_INT)0x10
-#define CS_CURSTAT_ROWCOUNT	(CS_INT)0x20
-#define CS_CURSTAT_DEALLOC	(CS_INT)0x40
+#define CS_CURSTAT_NONE			(CS_INT)0x0000
+#define CS_CURSTAT_DECLARED		(CS_INT)0x0001
+#define CS_CURSTAT_OPEN			(CS_INT)0x0002
+#define CS_CURSTAT_CLOSED		(CS_INT)0x0004
+#define CS_CURSTAT_RDONLY		(CS_INT)0x0008
+#define CS_CURSTAT_UPDATABLE		(CS_INT)0x0010
+#define CS_CURSTAT_ROWCOUNT		(CS_INT)0x0020
+#define CS_CURSTAT_DEALLOC		(CS_INT)0x0040
+#define CS_CURSTAT_SCROLLABLE		(CS_INT)0x0080
+#define CS_CURSTAT_IMPLICIT		(CS_INT)0x0100
+#define CS_CURSTAT_SENSITIVE		(CS_INT)0x0200
+#define CS_CURSTAT_INSENSITIVE		(CS_INT)0x0400
+#define CS_CURSTAT_SEMISENSITIVE	(CS_INT)0x0800
+#define CS_CURSTAT_KEYSETDRIVEN		(CS_INT)0x1000
+
+/* 
+** Possible bit values for implicit cursor status
+*/
+#define CS_IMPCURSTAT_NONE		(CS_INT)0x0000
+#define CS_IMPCURSTAT_DECLARED 		(CS_INT)0x0001
+#define CS_IMPCURSTAT_READROWS		(CS_INT)0x0002
+#define CS_IMPCURSTAT_CLOSED		(CS_INT)0x0004
+#define CS_IMPCURSTAT_SENDSUCCESS	(CS_INT)0x0008
+#define CS_IMPCURSTAT_FINALREAD		(CS_INT)0x0010
+#define CS_IMPCURSTAT_NOSEND		(CS_INT)0x0020
+#define CS_IMPCURSTAT_NOSENDDONE	(CS_INT)0x0040
 
 /*
 ** Possible values for the CS_TDS_VERSION property.
@@ -450,6 +659,215 @@
 #define CS_TDS_46		(CS_INT)7362
 #define CS_TDS_495		(CS_INT)7363
 #define CS_TDS_50		(CS_INT)7364
+
+/*
+** Possible values for the CS_BEHAVIOR property.
+*/
+#define CS_BEHAVIOR_080		(CS_INT)7369 
+#define CS_BEHAVIOR_100		(CS_INT)7370
+#define CS_BEHAVIOR_110		(CS_INT)7371
+#define CS_BEHAVIOR_120		(CS_INT)7372
+#define CS_BEHAVIOR_125		(CS_INT)7373
+
+/*
+** Possible values for the CS_PROP_SSL_PROTOVERSION property.
+**
+** If 2.0 handshake is desired with SSL 3.0 or TLS 1.0, or
+** CS_SSLVER_20HAND
+*/
+#define	CS_SSLVER_20		(CS_INT) 1
+#define	CS_SSLVER_30		(CS_INT) 2
+#define	CS_SSLVER_TLS1		(CS_INT) 3
+#define	CS_SSLVER_20HAND	(CS_INT) 0x80000000
+
+/*
+** Structure used with the CS_PROP_SSL_LOCALID property.
+*/
+typedef struct _cs_sslid
+{
+	CS_CHAR	*identity_file;
+	CS_CHAR	*identity_password;
+} CS_SSLIDENTITY;
+
+/*
+** Structure used to deal with certificates in the validate callback.
+*/
+typedef struct _cs_sslcertfield
+{
+	CS_VOID		*value;
+	CS_INT		 field_id;
+	CS_INT		 length;
+} CS_SSLCERT_FIELD;
+typedef struct _cs_sslcert
+{
+	CS_INT			 field_count;
+	CS_INT			 extension_count;
+	CS_UINT			 start_date;
+	CS_UINT			 end_date;
+	CS_SSLCERT_FIELD	*fieldptr;
+	CS_SSLCERT_FIELD	*extensionptr;
+} CS_SSLCERT;
+
+typedef CS_INT (CS_PUBLIC * CS_CERT_CB) PROTOTYPE((
+	CS_VOID *user_data,
+	CS_SSLCERT *certptr,
+	CS_INT cert_count,
+	CS_INT valid
+	));
+
+/*
+** Defines for valid certificate fields.
+*/
+#define	CS_SSLFLD_noMatch				0
+#define	CS_SSLFLD_md2					1
+#define	CS_SSLFLD_md4					2
+#define	CS_SSLFLD_md5					3
+#define	CS_SSLFLD_sha1					4
+#define	CS_SSLFLD_rsaEncryption				5
+#define	CS_SSLFLD_md2WithRSA				6
+#define	CS_SSLFLD_md4WithRSA				7
+#define	CS_SSLFLD_md5WithRSA				8
+#define	CS_SSLFLD_sha1WithRSA				9
+#define	CS_SSLFLD_dhKeyAgreement			10
+#define	CS_SSLFLD_pbeWithMD2AndDES_CBC			11
+#define	CS_SSLFLD_pbeWithMD5AndDES_CBC			12
+#define	CS_SSLFLD_emailAddress				13
+#define	CS_SSLFLD_unstructuredName			14
+#define	CS_SSLFLD_contentType				15
+#define	CS_SSLFLD_messageDigest				16
+#define	CS_SSLFLD_signingTime				17
+#define	CS_SSLFLD_counterSignature			18
+#define	CS_SSLFLD_challengePassword			19
+#define	CS_SSLFLD_unstructuredAddress			20
+#define	CS_SSLFLD_extendedCertificateAttributes		21
+#define	CS_SSLFLD_commonName				22
+#define	CS_SSLFLD_surName				23
+#define	CS_SSLFLD_serialNumber				24
+#define	CS_SSLFLD_countryName				25
+#define	CS_SSLFLD_localityName				26
+#define	CS_SSLFLD_stateProvinceName			27
+#define	CS_SSLFLD_streetAddress				28
+#define	CS_SSLFLD_organizationName			29
+#define	CS_SSLFLD_organizationalUnitName		30
+#define	CS_SSLFLD_title					31
+#define	CS_SSLFLD_description				32
+#define	CS_SSLFLD_businessCategory			33
+#define	CS_SSLFLD_postalAddress				34
+#define	CS_SSLFLD_postalCode				35
+#define	CS_SSLFLD_postOfficeBox				36
+#define	CS_SSLFLD_physicalDeliveryOfficeName		37
+#define	CS_SSLFLD_telephoneNumber			38
+#define	CS_SSLFLD_telexNumber				39
+#define	CS_SSLFLD_telexTerminalIdentifier		40
+#define	CS_SSLFLD_facsimileTelephoneNumber		41
+#define	CS_SSLFLD_x_121Address				42
+#define	CS_SSLFLD_internationalISDNNumber		43
+#define	CS_SSLFLD_registeredAddress			44
+#define	CS_SSLFLD_destinationIndicator			45
+#define	CS_SSLFLD_preferredDeliveryMethod		46
+#define	CS_SSLFLD_presentationAddress			47
+#define	CS_SSLFLD_supportedApplicationContext		48
+#define	CS_SSLFLD_member				49
+#define	CS_SSLFLD_owner					50
+#define	CS_SSLFLD_roleOccupant				51
+#define	CS_SSLFLD_mysteryPKCS7_PKCS5			52
+#define	CS_SSLFLD_netscapeCertType			53
+#define	CS_SSLFLD_netscapeBaseURL			54
+#define	CS_SSLFLD_netscapeRevocationURL			55
+#define	CS_SSLFLD_netscapeCARevocationURL		56
+#define	CS_SSLFLD_netscapeCertRenewalURL		57
+#define	CS_SSLFLD_netscapeCAPolicyURL			58
+#define	CS_SSLFLD_netscapeSSLServerName			59
+#define	CS_SSLFLD_netscapeComment			60
+#define	CS_SSLFLD_subjectDirectoryAttributes		61
+#define	CS_SSLFLD_subjectKeyIdentifier			62
+#define	CS_SSLFLD_keyUsage				63
+#define	CS_SSLFLD_privateKeyUsagePeriod			64
+#define	CS_SSLFLD_subjectAltName			65
+#define	CS_SSLFLD_issuerAltName				66
+#define	CS_SSLFLD_basicConstraints			67
+#define	CS_SSLFLD_crlNumber				68
+#define	CS_SSLFLD_crlReason				69
+#define	CS_SSLFLD_holdInstructionCode			70
+#define	CS_SSLFLD_invalidityDate			71
+#define	CS_SSLFLD_deltaCRLIndicator			72
+#define	CS_SSLFLD_issuingDistributionPoint		73
+#define	CS_SSLFLD_nameConstraints			74
+#define	CS_SSLFLD_certificatePolicies			75
+#define	CS_SSLFLD_policyMappings			76
+#define	CS_SSLFLD_policyConstraints			77
+#define	CS_SSLFLD_authorityKeyIdentifier		78
+#define	CS_SSLFLD_extendedKeyUsage			79
+#define	CS_SSLFLD_pkixSubjectInfoAccess			80
+#define	CS_SSLFLD_pkixAuthorityInfoAccess		81
+#define	CS_SSLFLD_pkixCPS				82
+#define	CS_SSLFLD_pkixUserNotice			83
+#define	CS_SSLFLD_pkixKPServerAuth			84
+#define	CS_SSLFLD_pkixKPClientAuth			85
+#define	CS_SSLFLD_pkixKPCodeSigning			86
+#define	CS_SSLFLD_pkixKPEmailProtection			87
+#define	CS_SSLFLD_pkixKPIPSECEndSystem			88
+#define	CS_SSLFLD_pkixKPIPSECTunnel			89
+#define	CS_SSLFLD_pkixKPIPSECUser			90
+#define	CS_SSLFLD_pkixKPTimeStamping			91
+#define	CS_SSLFLD_netscapeKPStepUp			92
+#define	CS_SSLFLD_microsoftKPServerGatedCrypto		93
+#define	CS_SSLFLD_sha1WithDSA				94
+#define	CS_SSLFLD_dsa					95
+#define	CS_SSLFLD_contentInfoData			96
+#define	CS_SSLFLD_contentInfoSignedData			97
+#define	CS_SSLFLD_contentInfoEnvelopedData		98
+#define	CS_SSLFLD_contentInfoSignedAndEnvelopedData	99
+#define	CS_SSLFLD_contentInfoDigestedData		100
+#define	CS_SSLFLD_contentInfoEncryptedData		101
+#define	CS_SSLFLD_keyBag				102
+#define	CS_SSLFLD_pkcs8ShroudedKeyBag			103
+#define	CS_SSLFLD_certBag				104
+#define	CS_SSLFLD_crlBag				105
+#define	CS_SSLFLD_secretBag				106
+#define	CS_SSLFLD_safeContentBag			107
+#define	CS_SSLFLD_pbeWithSHA1And128RC4			108
+#define	CS_SSLFLD_pbeWithSHA1And40BitRC4		109
+#define	CS_SSLFLD_pbeWithSHA1And3KeyTripleDESCBC	110
+#define	CS_SSLFLD_pbeWithSHA1And2KeyTripleDESCBC	111
+#define	CS_SSLFLD_pbeWithSHA1And128BitRC2CBC		112
+#define	CS_SSLFLD_pbeWithSHA1And40BitRC2CBC		113
+#define	CS_SSLFLD_desEDECBC3				114
+#define	CS_SSLFLD_rc2CBC				115
+#define	CS_SSLFLD_x509Certificate			116
+#define	CS_SSLFLD_dhPublicNumber			117
+#define	CS_SSLFLD_ecdhPublicNumber			118
+#define	CS_SSLFLD_ecdhPrivateNumber			119
+#define	CS_SSLFLD_ecPublicKey				120
+#define	CS_SSLFLD_ecPrivateKey				121
+#define	CS_SSLFLD_ecdsaWithSHA1				122
+#define	CS_SSLFLD_ecdsaec163a01				123
+#define	CS_SSLFLD_ecdsaec163a02				124
+#define	CS_SSLFLD_ecdsaec155b01				125
+#define	CS_SSLFLD_ecdsaec163b01				126
+#define	CS_SSLFLD_ecdsaec210b01				127
+#define	CS_SSLFLD_ecnraec163a01				128
+#define	CS_SSLFLD_ecnraec163a02				129
+#define	CS_SSLFLD_ecnraec155b01				130
+#define	CS_SSLFLD_ecnraec163b01				131
+#define	CS_SSLFLD_ecnraec210b01				132
+#define	CS_SSLFLD_curve113a01				133
+#define	CS_SSLFLD_curve163a01				134
+#define	CS_SSLFLD_curve163a02				135
+#define	CS_SSLFLD_curve163b01				136
+
+/*
+** Define values for SSL/TLS certificate validation checks
+*/
+#define	CS_SSL_VALID_CERT		0
+#define	CS_SSL_INVALID_BADCHAIN		1
+#define	CS_SSL_INVALID_EXPCERT		2
+#define	CS_SSL_INVALID_INCOMPLETE	3
+#define	CS_SSL_INVALID_UNKNOWN		4
+#define	CS_SSL_INVALID_UNTRUSTED	5
+#define	CS_SSL_INVALID_MISSINGNAME	6
+#define	CS_SSL_INVALID_MISMATCHNAME	7
+#define	CS_SSL_INVALID_CERT		8
 
 /*****************************************************************************
 **
@@ -472,7 +890,6 @@
 #define CS_OPT_AUTHON           (CS_INT)5009    /* Set authority level on */
 #define CS_OPT_CHARSET          (CS_INT)5010    /* Character set */
 #define CS_OPT_SHOWPLAN         (CS_INT)5013    /* show execution plan    */
- 
 #define CS_OPT_NOEXEC           (CS_INT)5014    /* don't execute query */
 #define CS_OPT_ARITHIGNORE      (CS_INT)5015    /* ignore arithmetic
                                                 ** exceptions */
@@ -491,19 +908,62 @@
 #define CS_OPT_FIPSFLAG         (CS_INT)5027    /* FIPS flag */
 #define CS_OPT_RESTREES         (CS_INT)5028    /* return resolution trees */
 #define CS_OPT_IDENTITYON       (CS_INT)5029    /* turn on explicit identity */
-#define CS_OPT_CURREAD       	(CS_INT)5030    /* Set session label
-						** @@ curread */
-#define CS_OPT_CURWRITE       	(CS_INT)5031    /* Set session label 
-						** @@curwrite */
+#define CS_OPT_CURREAD       	(CS_INT)5030    /* Set session label @@curread */
+#define CS_OPT_CURWRITE       	(CS_INT)5031    /* Set session label @@curwrite */
 #define CS_OPT_IDENTITYOFF      (CS_INT)5032    /* turn off explicit identity */
 #define CS_OPT_AUTHOFF      	(CS_INT)5033    /* Set authority level off */
 #define CS_OPT_ANSINULL      	(CS_INT)5034    /* ANSI NULLS behavior */
 #define CS_OPT_QUOTED_IDENT    	(CS_INT)5035    /* Quoted identifiers */
 #define CS_OPT_ANSIPERM    	(CS_INT)5036    /* ANSI permission checking */
 #define CS_OPT_STR_RTRUNC    	(CS_INT)5037    /* ANSI right truncation */
- 
+#define CS_OPT_SORTMERGE	(CS_INT)5038	/* Sort merge join status */
+#define	CS_OPT_JTC		(CS_INT)5039	/* Enable/disable JTC for session */
+#define	CS_OPT_CLIENTREALNAME	(CS_INT)5040	/* Set client real name */
+#define	CS_OPT_CLIENTHOSTNAME	(CS_INT)5041	/* Set client host name */
+#define	CS_OPT_CLIENTAPPLNAME	(CS_INT)5042	/* Set client appl name */
+#define CS_OPT_IDENTITYUPD_ON	(CS_INT)5043	/* turn on identity update */
+#define CS_OPT_IDENTITYUPD_OFF	(CS_INT)5044	/* turn off identity update */
+#define CS_OPT_NODATA		(CS_INT)5045	/* turn on/off nodata option */
+#define CS_OPT_CIPHERTEXT	(CS_INT)5046	/* turn on/off ciphertext 
+						** encryption */
+#define CS_OPT_SHOW_FI		(CS_INT)5047	/* Show Functional Indexes */
+#define CS_OPT_HIDE_VCC		(CS_INT)5048	/* Hide Virtual Computed Columns */
+#define CS_OPT_RESOURCE_GRANULARITY (CS_INT)5049 /* Max % total mem allowed for qry */
+#define	CS_OPT_PARALLEL_DEGREE	(CS_INT)5050	/* Max # treads used for qry */
+#define	CS_OPT_PLAN_OPTGOAL	(CS_INT)5051	/* Strategy used to exec qry */
+#define	CS_OPT_PLAN_OPTTIMEOUT	(CS_INT)5052	/* Max % est qry exec time used */
+#define	CS_OPT_METRICS_CAPTURE	(CS_INT)5053	/* turn on/off metric capturing */
+#define	CS_OPT_CALIBRATE	(CS_INT)5054	/* turn on/off parr deg stats coll */
+#define	CS_OPT_DISTINCT_SORTED	(CS_INT)5055	/* turn on/off dups elim on sorted */
+#define	CS_OPT_DISTINCT_SORTING	(CS_INT)5056	/* turn on/off dups elim on sorting */
+#define	CS_OPT_DISTINCT_HASHING	(CS_INT)5057	/* turn on/off dups elim on hash */
+#define	CS_OPT_GROUP_SORTED	(CS_INT)5058	/* turn on/off vect agg on sorted 
+						** streams */
+#define	CS_OPT_GROUP_HASHING	(CS_INT)5059	/* turn on/off vect agg using hash
+						** based strategy */
+#define	CS_OPT_PARALLEL_QUERY	(CS_INT)5060	/* turn on/off parr exec strategy */
+#define	CS_OPT_NL_JOIN		(CS_INT)5061	/* turn on/off NL strategy */
+#define	CS_OPT_MERGE_JOIN	(CS_INT)5062	/* turn on/off merge join strategy */
+#define	CS_OPT_HASH_JOIN	(CS_INT)5063	/* turn on/off hash join strategy */
+#define CS_OPT_APPEND_UNION_ALL	(CS_INT)5064	/* turn on/off optim tuple append */
+#define CS_OPT_MERGE_UNION_ALL	(CS_INT)5065	/* turn on/off optim tuple merge */
+#define CS_OPT_MERGE_UNION_DISTINCT \
+				(CS_INT)5066	/* turn on/off optim union distinct */
+#define CS_OPT_HASH_UNION_DISTINCT \
+				(CS_INT)5067	/* turn on/off optim hash distinct */
+#define	CS_OPT_STORE_INDEX	(CS_INT)5068	/* turn on/off index bld worktbl */
+#define	CS_OPT_INDEX_INTERSECTION \
+				(CS_INT)5069	/* turn on/off index intersection */
+#define	CS_OPT_MULTI_TABLE_STORE_INDEX \
+				(CS_INT)5070	/* turn on/off index mater mult tbl */
+#define	CS_OPT_OPPORTUNISTIC_DISTINCT_VIEW \
+				(CS_INT)5071	/* turn on/off dist view efficient */
+#define	CS_OPT_OPPORTUNISTIC_GROUPING \
+				(CS_INT)5072	/* turn on/off group aggr eval */
+#define	CS_OPT_BUSHY_SPACE_SEARCH \
+				(CS_INT)5073	/* turn on/off tree shaping */
 #define CS_MIN_OPTION           CS_OPT_DATEFIRST
-#define CS_MAX_OPTION           CS_OPT_STR_RTRUNC
+#define CS_MAX_OPTION           CS_OPT_BUSHY_SPACE_SEARCH
 
 /*
 ** The supported options are summarized below with their defined values
@@ -525,6 +985,8 @@
 ** CS_OPT_CURWRITE 		OptionArg Len	Write Label(string)
 ** CS_OPT_IDENTITYOFF 		OptionArg Len	Table Name (string)
 ** CS_OPT_AUTHOFF 		OptionArg Len	Table Name (string)
+** CS_OPT_IDENTITYUPD_ON 	OptionArg Len	Table Name (string)
+** CS_OPT_IDENTITYUPD_OFF 	OptionArg Len	Table Name (string)
 ** (All remaining options)	1 byte		Boolean value
 ** 
 ** All string values must be sent in 7 bit ASCII.
@@ -550,7 +1012,9 @@
 #define CS_OPT_FMTDYM		(CS_INT)6
 
 /* CS_OPT_ISOLATION */
+#define CS_OPT_LEVEL0		(CS_INT)0
 #define CS_OPT_LEVEL1		(CS_INT)1
+#define CS_OPT_LEVEL2		(CS_INT)2
 #define CS_OPT_LEVEL3		(CS_INT)3
 
 /*****************************************************************************
@@ -626,12 +1090,48 @@
 #define CS_OPTION_GET		(CS_INT)51
 #define CS_DATA_INT8		(CS_INT)52
 #define CS_DATA_VOID		(CS_INT)53	
-
+#define CS_DOL_BULK		(CS_INT)54
+#define CS_OBJECT_JAVA1		(CS_INT)55
+#define CS_OBJECT_CHAR		(CS_INT)56
+#define CS_DATA_COLUMNSTATUS	(CS_INT)57
+#define CS_OBJECT_BINARY	(CS_INT)58
+#define CS_REQ_RESERVED1	(CS_INT)59
+#define CS_WIDETABLES		(CS_INT)60
+#define CS_REQ_RESERVED2	(CS_INT)61
+#define CS_DATA_UINT2		(CS_INT)62
+#define CS_DATA_UINT4		(CS_INT)63
+#define CS_DATA_UINT8		(CS_INT)64
+#define CS_DATA_UINTN		(CS_INT)65
+#define CS_CUR_IMPLICIT		(CS_INT)66
+#define CS_DATA_UCHAR		(CS_INT)67
+#define CS_IMAGE_NCHAR		(CS_INT)68
+#define CS_BLOB_NCHAR_16	(CS_INT)69
+#define CS_BLOB_NCHAR_8		(CS_INT)70
+#define CS_BLOB_NCHAR_SCSU	(CS_INT)71
+#define CS_DATA_DATE		(CS_INT)72
+#define CS_DATA_TIME		(CS_INT)73
+#define CS_DATA_INTERVAL	(CS_INT)74
+#define CS_CSR_SCROLL		(CS_INT)75
+#define CS_CSR_SENSITIVE	(CS_INT)76
+#define CS_CSR_INSENSITIVE	(CS_INT)77
+#define CS_CSR_SEMISENSITIVE	(CS_INT)78
+#define CS_CSR_KEYSETDRIVEN	(CS_INT)79
+#define CS_REQ_SRVPKTSIZE	(CS_INT)80
+#define CS_DATA_UNITEXT		(CS_INT)81
+#define CS_CAP_EXTENDEDFAILOVER	(CS_INT)82
+#define CS_DATA_SINT1		(CS_INT)83
+#define CS_REQ_LARGEIDENT	(CS_INT)84
+#define CS_REQ_BLOB_NCHAR_16	(CS_INT)85
+#define CS_DATA_XML		(CS_INT)86
+#define CS_REQ_CURINFO3		(CS_INT)87
+#define CS_REQ_DBRPC2		(CS_INT)88
+#define CS_REQ_MIGRATE		(CS_INT)89
+#define	CS_REQ_UNDEFINED	(CS_INT)90                                                                                                  
 /*
 ** Minimum and maximum request capability values.
 */
 #define CS_MIN_REQ_CAP		CS_REQ_LANG
-#define CS_MAX_REQ_CAP		CS_DATA_VOID
+#define CS_MAX_REQ_CAP		CS_REQ_UNDEFINED
 
 /*
 ** Capability response values.
@@ -671,25 +1171,58 @@
 #define CS_RES_NOTDSDEBUG	(CS_INT)33
 #define CS_RES_NOSTRIPBLANKS	(CS_INT)34
 #define CS_DATA_NOINT8		(CS_INT)35
+#define CS_OBJECT_NOJAVA1	(CS_INT)36
+#define CS_OBJECT_NOCHAR	(CS_INT)37
+#define CS_DATA_NOCOLUMNSTATUS	(CS_INT)38
+#define CS_OBJECT_NOBINARY	(CS_INT)39
+#define CS_RES_RESERVED		(CS_INT)40
+#define CS_DATA_NOUINT2		(CS_INT)41
+#define CS_DATA_NOUINT4		(CS_INT)42
+#define CS_DATA_NOUINT8		(CS_INT)43
+#define CS_DATA_NOUINTN		(CS_INT)44
+#define CS_NOWIDETABLES		(CS_INT)45
+#define CS_DATA_NOUCHAR		(CS_INT)46
+#define CS_IMAGE_NONCHAR	(CS_INT)47
+#define CS_BLOB_NONCHAR_16	(CS_INT)48
+#define CS_BLOB_NONCHAR_8	(CS_INT)49
+#define CS_BLOB_NONCHAR_SCSU	(CS_INT)50
+#define CS_DATA_NODATE		(CS_INT)51
+#define CS_DATA_NOTIME		(CS_INT)52
+#define CS_DATA_NOINTERVAL	(CS_INT)53
+#define CS_DATA_NOUNITEXT	(CS_INT)54
+#define CS_DATA_NOSINT1		(CS_INT)55
+#define CS_NO_LARGEIDENT	(CS_INT)56
+#define CS_NO_BLOB_NCHAR_16	(CS_INT)57
+#define CS_NO_SRVPKTSIZE	(CS_INT)58
+#define CS_DATA_NOXML		(CS_INT)59
+#define CS_NONINT_RETURN_VALUE	(CS_INT)60
+#define	CS_RES_NOXNLDATA	(CS_INT)61
+#define	CS_RES_SUPPRESS_FMT	(CS_INT)62
+#define	CS_RES_SUPPRESS_DONEINPROC (CS_INT)63
+#define	CS_RES_FORCE_ROWFMT2	(CS_INT)64
 
 /*
 ** Minimum and maximum response capability values.
 */
 #define CS_MIN_RES_CAP		CS_RES_NOMSG
-#define CS_MAX_RES_CAP		CS_DATA_NOINT8
+#define CS_MAX_RES_CAP		CS_RES_FORCE_ROWFMT2
 
 /*
 ** Minimum and maximum of all capabilities defined above.
 */
 #define CS_MIN_CAPVALUE		CS_REQ_LANG
-#define CS_MAX_CAPVALUE		CS_DATA_INT8
+#define CS_MAX_CAPVALUE		CS_REQ_UNDEFINED
 
 /*
-** Size of area to store capabilities. The array len must be greater than
-** ((CS_CAP_MAX / CS_BITS_PER_BYTE) + 1). The current value allows
-** additional capabilities to be added.
+** Size of area to store capabilities. The array len must be greater
+** than CS_CAP_ARRAYLEN additional capabilities to be added.
 */
 #define CS_CAP_ARRAYLEN		16
+
+/*
+** Maximum OID length (bytes)
+*/
+#define CS_MAX_OIDLEN		255
 
 /*
 ** Index used by access macros so that the first byte in the array will
@@ -733,6 +1266,7 @@ typedef	struct _cs_cap_type
 #define CS_HASEED		(CS_INT)0x1
 #define CS_FIRST_CHUNK		(CS_INT)0x2
 #define CS_LAST_CHUNK		(CS_INT)0x4
+#define	CS_EEDINFO		(CS_INT)0x8
 
 /*****************************************************************************
 **
@@ -787,7 +1321,7 @@ typedef	struct _bulkrow		CS_BLK_ROW;
 **
 ** datatype		The datatype of the data object. The only legal
 **			values for datatype are CS_TEXT_TYPE and
-**			CS_IMAGE_TYPE.
+**			CS_IMAGE_TYPE and CS_XML_TYPE.
 **
 ** *locale		A pointer to a CS_LOCALE structure containing
 **		 	localization information for the text or image
@@ -862,6 +1396,12 @@ typedef struct _cs_iodesc
 ** tabnlen		Length of tablename in bytes.
 **
 */
+#if defined(CS_NO_LARGE_IDENTIFIERS)
+/*
+** In pre-15.0 versions the (old) value for CS_MAX_NAME was used for the
+** origname array declaration. Starting from version 15.0, CS_MAX_CHAR
+** is used to define this character array size.
+*/
 typedef struct _cs_browsedesc
 {
 	CS_INT		status;
@@ -872,7 +1412,18 @@ typedef struct _cs_browsedesc
 	CS_CHAR		tablename[CS_OBJ_NAME];
 	CS_INT		tabnlen;
 } CS_BROWSEDESC;
-
+#else
+typedef struct _cs_browsedesc
+{
+	CS_INT		status;
+	CS_BOOL		isbrowse;
+	CS_CHAR		origname[CS_MAX_CHAR];
+	CS_INT		orignlen;
+	CS_INT		tablenum;
+	CS_CHAR		tablename[CS_OBJ_NAME];
+	CS_INT		tabnlen;
+} CS_BROWSEDESC;
+#endif
 
 /*
 ** Define the server message structure used by Open Client/Server.
@@ -915,6 +1466,12 @@ typedef struct _cs_browsedesc
 ** sqlstatelen		The length, in bytes, of sqlstate.
 **
 */
+#if defined(CS_NO_LARGE_IDENTIFIERS)
+/*
+** In pre-15.0 versions the (old) value for CS_MAX_NAME was used for the 
+** name array declarations. Starting from version 15.0, CS_MAX_CHAR is
+** used to define these character array sizes.
+*/
 typedef struct _cs_servermsg
 {
 	CS_MSGNUM	msgnumber;
@@ -931,6 +1488,24 @@ typedef struct _cs_servermsg
 	CS_BYTE		sqlstate[CS_SQLSTATE_SIZE];
 	CS_INT		sqlstatelen;
 } CS_SERVERMSG;
+#else
+typedef struct _cs_servermsg
+{
+	CS_MSGNUM	msgnumber;
+	CS_INT		state;
+	CS_INT		severity;
+	CS_CHAR		text[CS_MAX_MSG];
+	CS_INT		textlen;
+	CS_CHAR		svrname[CS_MAX_CHAR];
+	CS_INT		svrnlen;
+	CS_CHAR		proc[CS_MAX_CHAR];
+	CS_INT		proclen;
+	CS_INT		line;
+	CS_INT		status;
+	CS_BYTE		sqlstate[CS_SQLSTATE_SIZE];
+	CS_INT		sqlstatelen;
+} CS_SERVERMSG;
+#endif
 
 /*
 ** Define the client message structure used by Open Client/Server.
@@ -984,6 +1559,12 @@ typedef struct _cs_clientmsg
 	CS_BYTE		sqlstate[CS_SQLSTATE_SIZE];
 	CS_INT		sqlstatelen;
 } CS_CLIENTMSG;
+
+/*
+** Define the constants an application tests for in the DONEPROC callback
+*/
+#define CS_TDS_DONEPROC_TYPE (CS_INT) 1
+#define CS_TDS_DONEINPROC_TYPE (CS_INT) 2
 
 /*****************************************************************************
 **
@@ -1170,6 +1751,29 @@ extern CS_RETCODE CS_PUBLIC cs_time PROTOTYPE((
 	CS_INT  *outlen,
 	CS_DATEREC *drec
 	));
+
+/* csmancnt.c */
+extern CS_RETCODE CS_PUBLIC cs_manage_convert PROTOTYPE((
+	CS_CONTEXT	*context,
+	CS_INT		action,
+	CS_INT		srctype, 
+	CS_CHAR		*srcname,
+	CS_INT		srcnamelen,
+	CS_INT		desttype,
+	CS_CHAR		*destname,
+	CS_INT		destnamelen,
+	CS_INT		*maxmultiplier,
+	CS_CONV_FUNC	*func
+	));
+
+/* csmaxmul.c */
+extern CS_RETCODE CS_PUBLIC cs_conv_mult PROTOTYPE((
+	CS_CONTEXT	*context,
+	CS_LOCALE       *srcloc,
+	CS_LOCALE       *destloc,
+	CS_INT          *multiplier
+	));
+	
 CS_END_EXTERN_C
 
 #endif /* __CSPUBLIC_H__ */

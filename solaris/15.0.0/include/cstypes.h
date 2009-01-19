@@ -1,30 +1,24 @@
-
-
-
-/* ORIGINAL Sccsid @(#) cstypes.h 87.11 1/2/94 */
-/* Sccsid %Z% %M% %I% %G% */
-
 /*
-**	Sybase Open Client/Server Version 10.0.1
+**	Sybase Open Client/Server 
 **	Confidential Property of Sybase, Inc.
-**	Copyright  Sybase, Inc. 1992, 1994
+**	Copyright  Sybase, Inc. 1992 - 2005
 **	All rights reserved
 */
-
 #ifndef __CSTYPES_H__
-
 #define __CSTYPES_H__
 
 /*
 ** This file defines basic error codes and data types used in all Open
-** Client/Server System 10 Products.
+** Client/Server Products.
 */
 
 /*
 ** Include the configuration header file. This file contains the defines and
 ** type definitions that are platform/compiler specific.
 */
+#ifndef __NO_INCLUDE__
 #include	<csconfig.h>
+#endif /* __NO_INCLUDE__ */
 
 /*****************************************************************************
 **
@@ -49,6 +43,8 @@
 #define CS_BLK_HAS_TEXT		(CS_RETCODE)-6
 #define CS_CONTINUE		(CS_RETCODE)-7
 #define CS_FATAL		(CS_RETCODE)-8
+#define CS_RET_HAFAILOVER	(CS_RETCODE)-9
+#define CS_UNSUPPORTED		(CS_RETCODE)-10
 
 /*
 ** Define error offsets. All other CS_RETCODE error codes should be
@@ -57,6 +53,9 @@
 #define CS_CONV_ERR		(CS_RETCODE)(-100)
 #define CS_EXTERNAL_ERR		(CS_RETCODE)(-200)
 #define CS_INTERNAL_ERR		(CS_RETCODE)(-300)
+
+/* common library errors */
+#define CS_COMN_ERR		(CS_RETCODE)(-400)
 
 /*
 ** Return code for a routine which was cancelled via ct_cancel().
@@ -108,6 +107,14 @@
 #define CS_ENOCNVRT		(CS_RETCODE)(CS_EXTERNAL_ERR - 16)
 
 /*
+** Special returns for the new ct_scroll_fetch() API. For Scrollable 
+** Cursor only.
+*/
+#define CS_SCROLL_CURSOR_ENDS	(CS_RETCODE)(CS_EXTERNAL_ERR - 17)
+#define CS_CURSOR_BEFORE_FIRST	(CS_RETCODE)(CS_EXTERNAL_ERR - 18)
+#define CS_CURSOR_AFTER_LAST	(CS_RETCODE)(CS_EXTERNAL_ERR - 19)
+
+/*
 ** Return codes for conversion errors. These should be used in any user-
 ** defined conversion routines that are install via cs_set_convert().
 */
@@ -127,6 +134,7 @@
 #define CS_ESTYLE		(CS_RETCODE)(CS_CONV_ERR - 14)
 #define CS_EBADXLT      	(CS_RETCODE)(CS_CONV_ERR - 15)
 #define CS_ENOXLT       	(CS_RETCODE)(CS_CONV_ERR - 16)
+#define CS_USEREP		(CS_RETCODE)(CS_CONV_ERR - 17)
 
 /*
 ** Error Severities. 
@@ -159,7 +167,11 @@
 /*
 ** The error message number.
 */
-typedef long	CS_MSGNUM;
+#if defined (SYB_LP64) || defined (SYB_LLP64) || defined (_AIX)
+typedef unsigned int CS_MSGNUM;
+#else
+typedef long CS_MSGNUM;
+#endif
 
 /*
 ** The following macros are used to extract the components from a composite
@@ -170,6 +182,15 @@ typedef long	CS_MSGNUM;
 #define CS_SEVERITY(S)	(CS_MSGNUM) (((S) >> 8) & 0xff)
 #define CS_NUMBER(N)	(CS_MSGNUM) ((N) & 0xff)
 
+/*
+** The following are the possible values for cs_status field of
+** CHAR_ATTRIB structure defined in intl_nls.h
+*/
+
+# define        CS_STAT_DEFAULT           0x0000
+# define        CS_STAT_MULTIBYTE         0x0001
+# define        CS_STAT_SPACELAST         0x0002
+# define        CS_STAT_NONASCIISP        0x0004
 
 /*****************************************************************************
 **
@@ -179,23 +200,44 @@ typedef long	CS_MSGNUM;
 
 /*
 ** The maximum localization name allowed. A four byte value is added (instead
-** of 1 byte) to provide space for null termination and remain on a modulo 4
+** of 1 byte) to provide space for null-termination and remain on a modulo 4
 ** byte boundary.
 */
 #define	CS_MAX_LOCALE		(CS_INT)(64 + 4)
 
 /*
-** The maximum column name allowed.
+** The maximum column name length allowed. This maximum length does not
+** include a null-terminator. For declarations of character arrays with
+** the maximum possible size, including a null-terminator, CS_MAX_CHAR
+** should be used.
+**
+** If the compile flag CS_NO_LARGE_IDENTIFIERS has been set, we need to
+** use the old size for CS_MAX_NAME, defined as CS_MAX_NAME_NO_LRGID.
 */
-#define	CS_MAX_NAME		(CS_INT)(128 + 4)
+#define CS_MAX_NAME_NO_LRGID	(CS_INT)(128 + 4)
+#if defined(CS_NO_LARGE_IDENTIFIERS)
+#define	CS_MAX_NAME		CS_MAX_NAME_NO_LRGID
+#else
+#define	CS_MAX_NAME		(CS_INT)(255)
+#endif /* CS_NO_LARGE_IDENTIFIERS */
 
 /*
-** The maximum number of characters in arrays. Please note that this define
-** does not correspond to any server definition of lengths (particularly
-** the length of the character data type, which is 255 bytes for the Sybase
-** server).
+** The maximum password length allowed.
+*/
+#define CS_MAX_PASS		(CS_INT)(30)
+
+/*
+** The maximum number of characters in arrays, including a null-terminator.
+** Please note that this define does not correspond to any server definition
+** of lengths (particularly the length of the character data type, which 
+** is 255 bytes for the Sybase server).
 */
 #define CS_MAX_CHAR		(CS_INT)256
+
+/*
+** Maximum string in Directory Services
+*/
+#define	CS_MAX_DS_STRING	(CS_INT)512
 
 /*
 ** Maximum data length of numeric/decimal datatypes.
@@ -215,6 +257,20 @@ typedef long	CS_MSGNUM;
 #define CS_WILDCARD		(CS_INT)(-99)
 #define CS_NO_LIMIT		(CS_INT)(-9999)
 #define CS_UNUSED		(CS_INT)(-99999)
+
+/*
+** timeout values
+**
+**	CS_NO_LIMIT		Resource will never expire.
+**	CS_UNEXPIRED		Resource did not expire.
+*/
+#define CS_UNEXPIRED		(CS_INT)(-999999)
+
+/*
+** Enumerate part of usertypes dataserver support.
+*/
+#define USER_UNICHAR_TYPE	(CS_INT)34
+#define USER_UNIVARCHAR_TYPE	(CS_INT)35
 
 /*
 ** Enumerate what datatypes we support.
@@ -244,12 +300,23 @@ typedef long	CS_MSGNUM;
 #define CS_SENSITIVITY_TYPE	(CS_INT)21
 #define CS_BOUNDARY_TYPE	(CS_INT)22
 #define CS_VOID_TYPE		(CS_INT)23
+#define CS_USHORT_TYPE		(CS_INT)24
+#define CS_UNICHAR_TYPE		(CS_INT)25	
+#define CS_BLOB_TYPE		(CS_INT)26
+#define CS_DATE_TYPE		(CS_INT)27	
+#define CS_TIME_TYPE		(CS_INT)28	
+#define CS_UNITEXT_TYPE		(CS_INT)29	
+#define CS_BIGINT_TYPE		(CS_INT)30	
+#define CS_USMALLINT_TYPE	(CS_INT)31	
+#define CS_UINT_TYPE		(CS_INT)32	
+#define CS_UBIGINT_TYPE		(CS_INT)33	
+#define CS_XML_TYPE		(CS_INT)34
 
 /*
 ** Define the minimum and maximum datatype values.
 */
 #define CS_MIN_SYBTYPE		CS_CHAR_TYPE
-#define CS_MAX_SYBTYPE		CS_VOID_TYPE
+#define CS_MAX_SYBTYPE		CS_XML_TYPE
 
 /*
 ** Define the number of datatypes that are supported by Sybase.
@@ -270,6 +337,8 @@ typedef long	CS_MSGNUM;
 #define CS_FMT_PADNULL		(CS_INT)0x2
 #define CS_FMT_PADBLANK		(CS_INT)0x4
 #define CS_FMT_JUSTIFY_RT	(CS_INT)0x8
+#define CS_FMT_STRIPBLANKS	(CS_INT)0x10
+#define CS_FMT_SAFESTR		(CS_INT)0x20
 
 /*
 ** The following are bit values for the status field in the CS_DATAFMT
@@ -319,6 +388,7 @@ typedef long	CS_MSGNUM;
 #define CS_INPUTVALUE		(CS_INT)0x100
 #define CS_UPDATECOL		(CS_INT)0x200
 #define CS_RETURN 		(CS_INT)0x400
+#define CS_RETURN_CANBENULL     (CS_INT) 0x420
 #define CS_TIMESTAMP		(CS_INT)0x2000
 #define CS_NODEFAULT		(CS_INT)0x4000
 #define CS_IDENTITY		(CS_INT)0x8000
@@ -373,6 +443,14 @@ typedef long	CS_MSGNUM;
 #define CS_DATES_YDM1		(CS_INT)13	/* yy/dd/mm	*/
 #define CS_DATES_MYD1		(CS_INT)14	/* mm/yy/dd	*/
 #define CS_DATES_DYM1		(CS_INT)15	/* dd/yy/mm	*/
+#define CS_DATES_MDYHMS		(CS_INT)16	/* mon dd yyyy hh:mm:ss */
+#define CS_DATES_HMA		(CS_INT)17	/* hh:mmAM(PM)	*/
+#define CS_DATES_HM		(CS_INT)18	/* hh:mm	*/
+#define CS_DATES_HMSZA		(CS_INT)19	/* hh:mm:ss:zzzAM(PM) */
+#define CS_DATES_HMSZ		(CS_INT)20	/* hh:mm:ss:zzz	*/
+#define CS_DATES_YMDHMS		(CS_INT)21	/* yy/mm/dd hh:mm:ss */
+#define CS_DATES_YMDHMA		(CS_INT)22	/* yy/mm/dd hh:mmAM */
+#define CS_DATES_YMDTHMS	(CS_INT)23	/* yyyy-mm-ddThh:mm:ss */
 #define CS_DATES_SHORT_ALT	(CS_INT)100	/* default	*/
 #define CS_DATES_MDY1_YYYY	(CS_INT)101	/* mm/dd/yyyy	*/
 #define CS_DATES_YMD1_YYYY	(CS_INT)102	/* yyyy.mm.dd	*/
@@ -386,6 +464,12 @@ typedef long	CS_MSGNUM;
 #define CS_DATES_MDY3_YYYY	(CS_INT)110	/* mm-dd-yyyy	*/
 #define CS_DATES_YMD2_YYYY	(CS_INT)111	/* yyyy/mm/dd	*/
 #define CS_DATES_YMD3_YYYY	(CS_INT)112	/* yyyymmdd	*/
+#define CS_DATES_YDM1_YYYY	(CS_INT)113	/* yyyy/dd/mm	*/
+#define CS_DATES_MYD1_YYYY	(CS_INT)114	/* mm/yyyy/dd	*/
+#define CS_DATES_DYM1_YYYY	(CS_INT)115	/* dd/yyyy/mm	*/
+#define CS_DATES_MDYHMS_ALT	(CS_INT)116	/* mon dd yyyy hh:mm:ss */
+#define CS_DATES_YMDHMS_YYYY	(CS_INT)117	/* yyyy/mm/dd hh:mm:ss */
+#define CS_DATES_YMDHMA_YYYY	(CS_INT)118	/* yyyy/mm/dd hh:mmAM */
 
 
 /*
@@ -407,7 +491,11 @@ typedef long	CS_MSGNUM;
 #define CS_SYB_LANG		(CS_INT)8
 #define CS_SYB_CHARSET		(CS_INT)9
 #define CS_SYB_SORTORDER	(CS_INT)10
+#define CS_SYB_COLLATE		CS_SYB_SORTORDER
 #define CS_SYB_LANG_CHARSET	(CS_INT)11
+#define CS_SYB_TIME		(CS_INT)12
+#define CS_SYB_MONETARY		(CS_INT)13
+#define CS_SYB_NUMERIC		(CS_INT)14
 
 /*
 ** Object type information for the cs_objects() API.
@@ -418,6 +506,15 @@ typedef long	CS_MSGNUM;
 #define CS_CURRENT_CONNECTION	(CS_INT)4
 #define CS_MIN_USERDATA		(CS_INT)100
 
+/*
+** Info type information for the ct_ds_objinfo() API.
+*/
+#define CS_DS_CLASSOID		(CS_INT)1
+#define CS_DS_DIST_NAME		(CS_INT)2
+#define CS_DS_NUMATTR		(CS_INT)3
+#define CS_DS_ATTRIBUTE		(CS_INT)4
+#define CS_DS_ATTRVALS		(CS_INT)5
+
 /*****************************************************************************
 **
 ** Common datatype typedefs and structures used in client/server applications.
@@ -427,10 +524,13 @@ typedef long	CS_MSGNUM;
 /*
 ** Define client/server datatypes.
 ** 
+** CS_INT is defined in csconfig.h
 ** CS_FLOAT is defined in csconfig.h
+** CS_UINT is defined in csconfig.h
 */
 typedef unsigned char   CS_TINYINT;	/* 1 byte integer */
 typedef short           CS_SMALLINT;	/* 2 byte integer */
+typedef unsigned short  CS_USMALLINT;	/* 2 byte unsigned integer */
 typedef char		CS_CHAR;	/* char type */
 typedef unsigned char   CS_BINARY;	/* binary type */
 typedef unsigned char   CS_BIT;		/* bit type */
@@ -440,10 +540,39 @@ typedef unsigned char	CS_TEXT;	/* text data */
 typedef unsigned char	CS_IMAGE;	/* image data */
 typedef unsigned char	CS_LONGCHAR;	/* long char type */
 typedef unsigned char	CS_LONGBINARY;	/* long binary type */
-typedef long 		CS_LONG;	/* long integer type */
+#if defined (SYB_LLP64)
+typedef __int64		CS_LONG;	/* long integer type */
+typedef unsigned __int64	CS_ULONG;	/* unsigned long integer type */
+#else		
+typedef long		CS_LONG;	/* long integer type */
+#endif
 typedef CS_INT		CS_VOIDDATA;	/* void data */
+typedef	unsigned short	CS_UNICHAR;	/* 2-byte unichar type */
+typedef CS_INT		CS_BLOB;	/* blob data type */
+typedef CS_INT		CS_DATE;	/* 4-byte date type */
+typedef CS_INT		CS_TIME;	/* 4-byte time type */
+typedef	unsigned short	CS_UNITEXT;	/* 2-byte unitext type */
 
-typedef   struct  cs_ctx_globs	CS_CTX_GLOBS;
+#if defined( __alpha) || defined(SYB_LP64)
+typedef	long			CS_BIGINT;	/* 8-byte integer */
+typedef	unsigned long		CS_UBIGINT;	/* 8-byte unsigned integer */
+#elif defined(_WIN32)  || defined(SYB_LLP64)
+typedef	__int64			CS_BIGINT;	/* 8-byte integer */
+typedef	unsigned __int64	CS_UBIGINT;	/* 8-byte unsigned integer */
+#else
+typedef	long long		CS_BIGINT;	/* 8-byte integer */
+typedef	unsigned long long	CS_UBIGINT;	/* 8-byte unsigned integer */
+#endif
+
+#if defined(SYB_LLP64)
+typedef unsigned __int64	CS_SOCKET;
+#else
+typedef int			CS_SOCKET;
+#endif
+
+typedef unsigned char	CS_XML;		/* xml data */
+
+typedef   struct  cs_ctx_globs		CS_CTX_GLOBS;
 typedef   struct  cs_ctx_locglobs	CS_CTX_LOCGLOBS;
 
 /*
@@ -564,6 +693,14 @@ typedef struct _cs_daterec
 #define CS_COMMAND	CS_VOID
 #endif /* CS_COMMAND */
  
+#ifndef CS_DS_OBJECT
+#define CS_DS_OBJECT	CS_VOID
+#endif /* CS_DS_OBJECT */
+ 
+#ifndef CS_DS_RESULT
+#define CS_DS_RESULT	CS_VOID
+#endif /* CS_DS_RESULT */
+ 
 #else /* lint */
 
 /*
@@ -573,6 +710,8 @@ typedef struct _cscontext	CS_CONTEXT;
 typedef struct _cslocale  	CS_LOCALE;
 typedef struct _csconnection	CS_CONNECTION;
 typedef struct _cscommand	CS_COMMAND;
+typedef struct _csdsobject	CS_DS_OBJECT;
+typedef struct _csdsresult	CS_DS_RESULT;
 
 #endif /* lint */
 
@@ -587,7 +726,7 @@ typedef struct _cscommand	CS_COMMAND;
 /*
 ** The data format structure used by Open Client/Server.
 **
-** name[CS_MAX_NAME]	The name of the data.
+** name[CS_MAX_CHAR]	The name of the data.
 **
 ** namelen		The actual length of the name.
 **
@@ -622,6 +761,12 @@ typedef struct _cscommand	CS_COMMAND;
 **
 ** *locale		Pointer to the locale for this data.
 */
+#if defined(CS_NO_LARGE_IDENTIFIERS)
+/* 
+** In pre-15.0 versions the (old) value for CS_MAX_NAME was used for the
+** name array declarations. Starting from version 15.0, CS_MAX_CHAR is
+** used to define these character array sizes.
+*/
 typedef struct _cs_datafmt
 {
 	CS_CHAR		name[CS_MAX_NAME];
@@ -636,6 +781,22 @@ typedef struct _cs_datafmt
 	CS_INT		usertype;
 	CS_LOCALE	*locale;
 } CS_DATAFMT;
+#else
+typedef struct _cs_datafmt
+{
+	CS_CHAR		name[CS_MAX_CHAR];
+	CS_INT		namelen;
+	CS_INT		datatype;
+	CS_INT		format;
+	CS_INT		maxlength;
+	CS_INT		scale;
+	CS_INT		precision;
+	CS_INT		status;
+	CS_INT		count;
+	CS_INT		usertype;
+	CS_LOCALE	*locale;
+} CS_DATAFMT;
+#endif
 
 /*
 ** The object name structure used by Client-Library cs_object() API.	
@@ -669,6 +830,12 @@ typedef struct _cs_datafmt
 **
 ** threadlen		The length, in bytes, of thread. 
 */
+#if defined(CS_NO_LARGE_IDENTIFIERS)
+/* 
+** In pre-15.0 versions the (old) value for CS_MAX_NAME was used for the
+** name array declarations. Starting from version 15.0, CS_MAX_CHAR is
+** used to define these character array sizes.
+*/
 typedef struct _cs_objname
 {
 	CS_BOOL		thinkexists;
@@ -682,6 +849,21 @@ typedef struct _cs_objname
 	CS_VOID		*thread;
 	CS_INT		threadlen;
 } CS_OBJNAME;
+#else
+typedef struct _cs_objname
+{
+	CS_BOOL		thinkexists;
+	CS_INT		object_type;
+	CS_CHAR		last_name[CS_MAX_CHAR];
+	CS_INT		lnlen;
+	CS_CHAR		first_name[CS_MAX_CHAR];
+	CS_INT		fnlen;
+	CS_VOID		*scope;
+	CS_INT		scopelen;
+	CS_VOID		*thread;
+	CS_INT		threadlen;
+} CS_OBJNAME;
+#endif
 
 /*
 ** The object data structure used by Client-Library cs_object() API.	
@@ -713,6 +895,11 @@ typedef struct _cs_objdata
 	CS_VOID		*buffer;
 	CS_INT		buflen;
 } CS_OBJDATA;
+
+/*
+** Typedef to make using session ids more convenient.
+*/
+typedef CS_BYTE	CS_SESSIONID[6];
 
 /*
 ** Definition of a pointer to a function for all conversion routines.
@@ -790,5 +977,175 @@ typedef struct _cs_thread
 	CS_THRDW_FUNC	waitfor_event_fn;
 	CS_THRDID_FUNC	thread_id_fn;
 } CS_THREAD;
+
+
+/*
+** Directory Service definitions
+*/
+
+/*
+** Token name for predefined OID strings.
+*/
+#define CS_OID_SYBASE		"1.3.6.1.4.1.897"
+#define CS_OID_DIRECTORY	"1.3.6.1.4.1.897.4"
+#define CS_OID_OBJCLASS		"1.3.6.1.4.1.897.4.1"
+#define CS_OID_ATTRTYPE		"1.3.6.1.4.1.897.4.2"
+#define CS_OID_ATTRSYNTAX	"1.3.6.1.4.1.897.4.3"
+#define CS_OID_OBJSERVER	"1.3.6.1.4.1.897.4.1.1"
+#define CS_OID_ATTRVERSION	"1.3.6.1.4.1.897.4.2.1"
+#define CS_OID_ATTRSERVNAME	"1.3.6.1.4.1.897.4.2.2"
+#define CS_OID_ATTRSERVICE	"1.3.6.1.4.1.897.4.2.3"
+#define CS_OID_ATTRSTATUS	"1.3.6.1.4.1.897.4.2.4"
+#define CS_OID_ATTRADDRESS	"1.3.6.1.4.1.897.4.2.5"
+#define CS_OID_ATTRSECMECH	"1.3.6.1.4.1.897.4.2.6"
+#define CS_OID_ATTRRETRYCOUNT	"1.3.6.1.4.1.897.4.2.7"
+#define CS_OID_ATTRLOOPDELAY	"1.3.6.1.4.1.897.4.2.8"
+
+#define CS_OID_ATTRJCPROTOCOL	"1.3.6.1.4.1.897.4.2.9"
+#define CS_OID_ATTRJCPROPERTY	"1.3.6.1.4.1.897.4.2.10"
+#define CS_OID_ATTRDATABASENAME	"1.3.6.1.4.1.897.4.2.11"
+
+#define CS_OID_ATTRHAFAILOVER	"1.3.6.1.4.1.897.4.2.15"
+#define CS_OID_ATTRRMNAME	"1.3.6.1.4.1.897.4.2.16"
+#define CS_OID_ATTRRMTYPE	"1.3.6.1.4.1.897.4.2.17"
+#define CS_OID_ATTRJDBCDSI	"1.3.6.1.4.1.897.4.2.18"
+#define CS_OID_ATTRSERVERTYPE	"1.3.6.1.4.1.897.4.2.19"
+
+/*
+** Current status of server object.
+*/
+#define CS_STATUS_ACTIVE	(CS_INT)1
+#define CS_STATUS_STOPPED	(CS_INT)2
+#define CS_STATUS_FAILED	(CS_INT)3
+#define CS_STATUS_UNKNOWN	(CS_INT)4
+
+
+/*
+** Server object access type
+*/
+#define CS_ACCESS_CLIENT	(CS_INT)1
+#define CS_ACCESS_ADMIN		(CS_INT)2
+#define CS_ACCESS_MGMTAGENT	(CS_INT)3
+#define CS_ACCESS_CLIENT_QUERY          (CS_INT)1
+#define CS_ACCESS_CLIENT_MASTER         (CS_INT)2
+#define CS_ACCESS_ADMIN_QUERY           (CS_INT)3
+#define CS_ACCESS_ADMIN_MASTER          (CS_INT)4
+#define CS_ACCESS_MGMTAGENT_QUERY       (CS_INT)5
+#define CS_ACCESS_MGMTAGENT_MASTER      (CS_INT)6
+
+
+/*
+** String Attribute Value
+**
+**	This structure is used to describe a string attribute
+**	value.
+**
+**	str_length	Length of string.
+**	str_buffer	String data.
+*/
+typedef struct _cs_string
+{
+	CS_INT	str_length;
+	CS_CHAR	str_buffer[CS_MAX_DS_STRING];
+} CS_STRING;
+
+/*
+** Transport Address attribute value
+**
+**	This structure is used to describe a server address attribute
+**	value. 
+**
+**	addr_accesstype		Access type provided on transport
+**				address.
+**	addr_trantype		Transport address type
+**	addr_tranaddress	The address string.
+*/
+typedef struct _cs_tranaddr
+{
+	CS_INT		addr_accesstype;
+	CS_STRING	addr_trantype;
+	CS_STRING	addr_tranaddress;
+} CS_TRANADDR;
+
+/*
+** Object Identifier
+**	
+**	This structure is used to represent an Object 
+**		Identifier.
+**
+**	oid_length	Length of Object Identifier.
+**	oid_buffer	Buffer containing object identifier.
+*/
+typedef struct _cs_oid
+{
+	CS_INT	oid_length;
+	CS_CHAR	oid_buffer[CS_MAX_DS_STRING];
+} CS_OID;
+
+/*
+** Attribute Value
+**	
+**	This union is used to represent an attribute value.
+**
+*/
+typedef union _cs_attrvalue
+{
+	CS_STRING	value_string;
+	CS_BOOL		value_boolean;
+	CS_INT		value_enumeration;
+	CS_INT		value_integer;
+	CS_OID		value_oid;
+	CS_TRANADDR	value_tranaddr;
+} CS_ATTRVALUE;
+
+
+/*
+** Attribute 
+**	
+**	This structure describes an attribute. 
+**
+*/
+typedef struct _cs_attribute
+{
+	CS_OID		attr_type;
+	CS_INT		attr_syntax;
+	CS_INT		attr_numvals;
+} CS_ATTRIBUTE;
+
+/*
+** Syntax identifier tokens for the CS_ATTRIBUTE union.
+*/
+#define CS_ATTR_SYNTAX_NOOP		(CS_INT) 0
+#define CS_ATTR_SYNTAX_STRING		(CS_INT) 1
+#define CS_ATTR_SYNTAX_INTEGER		(CS_INT) 2
+#define CS_ATTR_SYNTAX_BOOLEAN		(CS_INT) 3
+#define CS_ATTR_SYNTAX_ENUMERATION	(CS_INT) 4
+#define CS_ATTR_SYNTAX_TRANADDR		(CS_INT) 5
+#define CS_ATTR_SYNTAX_OID		(CS_INT) 6
+
+
+/* 
+**	Structure for defining directory lookup criteria when using
+**	ct_ds_lookup api.
+*/
+typedef struct _cs_ds_lookup_info
+{
+	CS_OID 		*objclass;
+	CS_CHAR 	*path;
+	CS_INT		pathlen;
+	CS_DS_OBJECT	*attrfilter;
+	CS_DS_OBJECT	*attrselect;
+} CS_DS_LOOKUP_INFO;
+
+/*
+** Predefined signal handlers for client and server signal handler
+** libraries.
+*/
+
+#define CS_SIGNAL_IGNORE	-1
+#define CS_SIGNAL_DEFAULT	-2
+#define CS_ASYNC_RESTORE	-3
+#define CS_SIGNAL_BLOCK		-4
+#define CS_SIGNAL_UNBLOCK	-5
 
 #endif /* __CSTYPES_H__ */
